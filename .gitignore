@@ -270,6 +270,6 @@ $RECYCLE.BIN/
 
 # Visual Micro files
 *.vsarduino.h
-_vm/
+__vm/
 Visual Micro/
 */Visual Micro/
