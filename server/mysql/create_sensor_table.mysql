@@ -1,0 +1,2 @@
+CREATE TABLE `test`.`dht22` ( `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY COMMENT 'unique ID', `event` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Event Date and Time', `sensor` VARCHAR( 30 ) NOT NULL COMMENT 'Unique ID of the sensor', `celsius` VARCHAR( 10 ) NOT NULL COMMENT 'Measured Temperature in Celsius', `humidity` VARCHAR( 10 ) NOT NULL COMMENT 'Measured Relative Humidity', INDEX ( `event` , `sensor` ) ) 
+
