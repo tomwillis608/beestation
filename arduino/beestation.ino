@@ -1,10 +1,10 @@
-/* 
+/*
 *  WiFi beekeeping monitor station with Arduino, the DHT22 temperature and humidity sensor & the CC3000 chip WiFi.
 *  Part of the code is based on the work done by Adafruit on the CC3000 chip & the DHT11 sensor
 *  Based in part on dht11/cc3300 weatherstation written by Marco Schwartz for Open Home Automation
 *  Lots of ideas taken from the many helpful posts in the community online.
-* 
-*  Purpose: 
+*
+*  Purpose:
 *  Sends data to LAMP backend with HTTP GETs to reduce load from AREST which seemed to make the app unstable on Uno
 *
 *  To Do:
@@ -18,7 +18,8 @@
 #include <Adafruit_CC3000.h> // wifi library
 #include <SPI.h> // how to talk to adafruit cc3300 board
 #include <DHT.h> // library to read DHT22 sensor
-#include <avr/wdt.h>
+#include <OneWire.h> // library to read DS 1-Wire sensors, like DS2401 and DS18B20
+#include <avr/wdt.h> // Watchdog timer
 
 #include <mycommon/mynetwork.h> // defines network secrets and addresses
 // WLAN_SSID
@@ -39,10 +40,10 @@
 #define DHTTYPE DHT22
 
 // Create global CC3000 instance
-Adafruit_CC3000 gCc3000 = Adafruit_CC3000(ADAFRUIT_CC3000_CS, 
-											ADAFRUIT_CC3000_IRQ, 
-											ADAFRUIT_CC3000_VBAT, 
-											SPI_CLOCK_DIV2);
+Adafruit_CC3000 gCc3000 = Adafruit_CC3000(ADAFRUIT_CC3000_CS,
+	ADAFRUIT_CC3000_IRQ,
+	ADAFRUIT_CC3000_VBAT,
+	SPI_CLOCK_DIV2);
 
 // create global DHT instance
 DHT gDht(DHTPIN, DHTTYPE);
@@ -57,118 +58,120 @@ unsigned long gTimeNow;
 int gTemperature;
 int gHumidity;
 int gConnectTimeout;
-// Serial Number of this beestation - eventually from DS2401
-const char gSerialNumber[] = "007";
+// Serial Number of this beestation 
+char gSerialNumber[20]; // read from Maxim DS2401 on pin 9
 
 void setup(void)
-{ 
-  wdt_disable();
-  // Start Serial
-  Serial.begin(9600); // 9600
-  Serial.println(F("\n\nInitializing Bee Station"));
-  
-  // Initialize DHT22 sensor
-  gDht.begin();
-    
-  // Initialise the CC3000 module
-  if (!gCc3000.begin())
-  {
-    while(1);
-  }
-  // cleanup profiles the CC3000 module
-  if (!gCc3000.deleteProfiles())
-  {
-    while(1);
-  }
-  // Connect to  WiFi network
-  Serial.println(F("Connecting to WiFi"));
-  gCc3000.connectToAP(WLAN_SSID, WLAN_PASS, WLAN_SECURITY);
-  // Check DHCP
-  while (!gCc3000.checkDHCP())
-  {
-    delay(100);
-    Serial.println(F("Trying WiFi again..."));   
-  }  
-  displayConnectionDetails(); 
-  uint32_t ip = gCc3000.IP2U32(WEB_SERVER_IP_COMMAS);
-  Serial.print(F("About to connect to web server at "));
-  gCc3000.printIPdotsRev(ip);
-  Serial.println();
-  postStatusToWeb(ip, "Start Bee Monitoring Station");
-  Serial.println(F("Looping"));
-  Serial.print(F("Time: "));
-  gTimeNow = millis();
-  //prints time since program started
-  Serial.println(gTimeNow);
-  gConnectTimeout=1000;
-  wdt_enable(WDTO_8S); // options: WDTO_1S, WDTO_2S, WDTO_4S, WDTO_8S
+{
+	wdt_disable();
+	// Start Serial
+	Serial.begin(9600); // 9600
+	Serial.println(F("\n\nInitializing Bee Station"));
+	readSerialNumber();
+
+	// Initialize DHT22 sensor
+	gDht.begin();
+
+	// Initialise the CC3000 module
+	if (!gCc3000.begin())
+	{
+		while (1);
+	}
+	// cleanup profiles the CC3000 module
+	if (!gCc3000.deleteProfiles())
+	{
+		while (1);
+	}
+
+	// Connect to  WiFi network
+	Serial.println(F("Connecting to WiFi"));
+	gCc3000.connectToAP(WLAN_SSID, WLAN_PASS, WLAN_SECURITY);
+	// Check DHCP
+	while (!gCc3000.checkDHCP())
+	{
+		delay(100);
+		Serial.println(F("Trying WiFi again..."));
+	}
+	displayConnectionDetails();
+	uint32_t ip = gCc3000.IP2U32(WEB_SERVER_IP_COMMAS);
+	Serial.print(F("About to connect to web server at "));
+	gCc3000.printIPdotsRev(ip);
+	Serial.println();
+	postStatusToWeb(ip, "Start Bee Monitoring Station");
+	Serial.println(F("Looping"));
+	Serial.print(F("Time: "));
+	gTimeNow = millis();
+	//prints time since program started
+	Serial.println(gTimeNow);
+	gConnectTimeout = 1000;
+	wdt_enable(WDTO_8S); // options: WDTO_1S, WDTO_2S, WDTO_4S, WDTO_8S
 }
 
 void loop(void)
 {
-  wdt_reset();
-  
-  delay(2);
-  // Measure from DHT
-  gTemperature = gDht.readTemperature();
-  gHumidity = gDht.readHumidity();
-  // Check if any reads failed and exit early (to try again).
-  if (isnan(gTemperature) || isnan(gHumidity) ) {
-   Serial.print("Time: ");
-   gTimeNow = millis();
-   //prints time since program started
-   Serial.println(gTimeNow);
-   Serial.println("Cannot read DHT sensor!");
-    return;
-  }  
-  //wdt_reset();  
+	wdt_reset();
 
-  Serial.print("H: ");
-  Serial.print(gHumidity);
-  Serial.print(" %\t");
-  Serial.print("T: ");
-  Serial.print(gTemperature);
-  Serial.print(" *C ");
+	delay(2);
+	// Measure from DHT
+	gTemperature = gDht.readTemperature();
+	gHumidity = gDht.readHumidity();
+	// Check if any reads failed and exit early (to try again).
+	if (isnan(gTemperature) || isnan(gHumidity)) {
+		Serial.print("Time: ");
+		gTimeNow = millis();
+		//prints time since program started
+		Serial.println(gTimeNow);
+		Serial.println("Cannot read DHT sensor!");
+		return;
+	}
+	//wdt_reset();  
 
-  wdt_reset();
-  // if you get a connection, report back via serial:  
-  uint32_t ip = gCc3000.IP2U32(WEB_SERVER_IP_COMMAS);
-  Serial.print("About to connect to web server ");
-  gCc3000.printIPdotsRev(ip);
-  Serial.println();
-  // Optional: Do a ping test on the website
-  //Serial.print(F("\n\rPinging ")); cc3000.printIPdotsRev(ip); Serial.print(F(" ... "));
-  //uint16_t replies = cc3000.ping(ip, 5);
-  //Serial.print(replies); Serial.println(F(" replies"));
+	Serial.print("H: ");
+	Serial.print(gHumidity);
+	Serial.print(" %\t");
+	Serial.print("T: ");
+	Serial.print(gTemperature);
+	Serial.print(" *C ");
 
-  postReadingsToWeb(ip, gTemperature, gHumidity);
+	wdt_reset();
+	// if you get a connection, report back via serial:  
+	uint32_t ip = gCc3000.IP2U32(WEB_SERVER_IP_COMMAS);
+	Serial.print("About to connect to web server ");
+	gCc3000.printIPdotsRev(ip);
+	Serial.println();
+	// Optional: Do a ping test on the website
+	//Serial.print(F("\n\rPinging ")); cc3000.printIPdotsRev(ip); Serial.print(F(" ... "));
+	//uint16_t replies = cc3000.ping(ip, 5);
+	//Serial.print(replies); Serial.println(F(" replies"));
 
-  // Check WiFi connection, reset if connection is lost
-  checkAndResetWifi();
+	postReadingsToWeb(ip, gTemperature, gHumidity);
 
-  wdt_reset();  
-  delayBetweenMeasurements(100); // Wait a few seconds between measurements.
+	// Check WiFi connection, reset if connection is lost
+	checkAndResetWifi();
+
+	wdt_reset();
+	delayBetweenMeasurements(100); // Wait a few seconds between measurements.
 }
 
-bool 
+bool
 displayConnectionDetails(void)
 {
-  uint32_t ipAddress, netmask, gateway, dhcpserv, dnsserv;
-  
-  if(!gCc3000.getIPAddress(&ipAddress, &netmask, &gateway, &dhcpserv, &dnsserv))
-  {
-    return false;
-  }
-  else
-  {
-    Serial.println(F("\nIP Addr: ")); gCc3000.printIPdotsRev(ipAddress);
-    Serial.print(F("\nNetmask: ")); gCc3000.printIPdotsRev(netmask);
-    Serial.print(F("\nGateway: ")); gCc3000.printIPdotsRev(gateway);
-    Serial.print(F("\nDHCPsrv: ")); gCc3000.printIPdotsRev(dhcpserv);
-    Serial.print(F("\nDNSserv: ")); gCc3000.printIPdotsRev(dnsserv);
-    Serial.println("");
-    return true;
-  }
+	uint32_t ipAddress, netmask, gateway, dhcpserv, dnsserv;
+
+	if (!gCc3000.getIPAddress(&ipAddress, &netmask, &gateway, &dhcpserv, &dnsserv))
+	{
+		return false;
+	}
+	else
+	{
+		Serial.println(F("\nIP Addr: ")); gCc3000.printIPdotsRev(ipAddress);
+		Serial.print(F("\nNetmask: ")); gCc3000.printIPdotsRev(netmask);
+		Serial.print(F("\nGateway: ")); gCc3000.printIPdotsRev(gateway);
+		Serial.print(F("\nDHCPsrv: ")); gCc3000.printIPdotsRev(dhcpserv);
+		Serial.print(F("\nDNSserv: ")); gCc3000.printIPdotsRev(dnsserv);
+		Serial.println("");
+		return true;
+	}
 }
 
 #define ONETHOUSAND 1000
@@ -188,7 +191,7 @@ postReadingsToWeb(uint32_t ip, int temperature, int humidity)
 {
 	// Build the URL string
 	char outStr[OUTSTRSIZE];
-	char itoaBuf[12]; 
+	char itoaBuf[12];
 	strlcpy(outStr, ("GET /add_data.php?"), OUTSTRSIZE);
 	strlcat(outStr, ("serial="), OUTSTRSIZE);
 	strlcat(outStr, (gSerialNumber), OUTSTRSIZE);
@@ -208,10 +211,10 @@ postReadingsToWeb(uint32_t ip, int temperature, int humidity)
 void
 postStatusToWeb(uint32_t ip, const char * message)
 {
-    // Build the URL string
+	// Build the URL string
 	char outStr[OUTSTRSIZE];
 	strlcpy(outStr, ("GET /add_info.php?"), OUTSTRSIZE);
-	strlcat(outStr, ("serial="), OUTSTRSIZE); 
+	strlcat(outStr, ("serial="), OUTSTRSIZE);
 	strlcat(outStr, (gSerialNumber), OUTSTRSIZE);
 	strlcat(outStr, ("&"), OUTSTRSIZE);
 	strlcat(outStr, ("message="), OUTSTRSIZE);
@@ -245,8 +248,8 @@ postToWeb(uint32_t ip, const char * urlString)
 		//client.fastrprintln("");
 		delay(100);
 		while (client.available()) {
-		char c = client.read();
-		Serial.print(c);
+			char c = client.read();
+			Serial.print(c);
 		}
 		client.close();
 		Serial.println(F("<- Disonnected"));
@@ -274,4 +277,36 @@ checkAndResetWifi(void) {
 		Serial.println(F("Lost WiFi"));
 		while (1) {}
 	}
+}
+
+bool 
+readSerialNumber(void)
+{
+	const char hex[] = "0123456789ABCDEF";
+	byte i = 0, j = 0;
+	boolean present;  
+	byte data;     
+	OneWire ds2401(9); // create local 1-Wire instance on digital wire 9 for digital serial number ds2401
+
+	present = ds2401.reset();
+
+	if (present == TRUE) 
+	{
+		Serial.println(F("1-Wire Device present bus 9"));
+		ds2401.write(0x33);  //Send READ data command to 1-Wire bus
+		for (i = 0; i <= 7; i++) {
+			data = ds2401.read();
+			gSerialNumber[j++] = hex[data / 16];
+			gSerialNumber[j++] = hex[data % 16];
+		}
+		gSerialNumber[j] = 0;
+		Serial.print(F("Serial Number for this kit: "));
+		Serial.println(gSerialNumber);
+	}
+	else //Nothing is connected in the bus
+	{
+		Serial.println(F("Nothing connected bus 9"));
+		strlcpy(gSerialNumber, hex, 16);
+	}
+	return present;
 }
