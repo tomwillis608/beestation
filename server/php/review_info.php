@@ -7,7 +7,7 @@
 
 <html>
 <head>
-    <title>Arduino Temperature Humidity Log</title>
+    <title>Arduino Beestation Status Log</title>
     <style type="text/css">
         .table_titles, .table_cells_odd, .table_cells_even {
                 padding-right: 20px;
@@ -42,26 +42,33 @@
         </tr>
 
 <?php
+    // Get record count
+    $sql = "SELECT count(id) from beestation";
+    $result = mysqli_query($link, $sql);
+    $row = mysqli_fetch_array($result, MYSQL_NUM);
+    $record_count = $row[0];
+
+    $record_limit = (isset($_GET['limit'])) ? $_GET['limit'] : 20;
+    $page = (isset($_GET['page'])) ? $_GET['page'] + 1 : 0;
+    $offset = $record_limit * $page ;
+         
     // Retrieve all records and display them
-    $result = mysqli_query($link, "SELECT * FROM beestation ORDER BY id DESC");
+    $left_record = $record_count - ($page * $record_limit);
+
+    $sql = "SELECT * FROM beestation ORDER by id DESC LIMIT $offset, $record_limit";
+    $result = mysqli_query($link, $sql); 
 
     // Used for row color toggle
     $oddrow = true;
 
     // process every record
-    while( $row = mysqli_fetch_array($result) )
-    {
-        if ($oddrow)
-        {
+    while( $row = mysqli_fetch_array($result) ) {
+        if ($oddrow) {
             $css_class=' class="table_cells_odd"';
-        }
-        else
-        {
+        } else {
             $css_class=' class="table_cells_even"';
         }
-
         $oddrow = !$oddrow;
-
         echo '<tr>';
 		echo '  <td'.$css_class.'>'.$row["id"].'</td>';
 		echo '  <td'.$css_class.'>'.$row["event"].'</td>';
@@ -69,7 +76,18 @@
 		echo '  <td'.$css_class.'>'.$row["message"].'</td>';
 		echo '</tr>';
     }
-	// free result set
+
+    if ($left_record < $record_limit ) {
+        $previous = $page - 2;
+        echo "<a href = \"$_SERVER[PHP_SELF]?page=$previous&limit=$record_limit\">Previous $record_limit Records</a>";
+    } else if ($page > 0) {
+        $previous = $page - 2;
+        echo "<a href = \"$_SERVER[PHP_SELF]?page=$previous&limit=$record_limit\">Previous $record_limit Records</a> |";
+        echo "<a href = \"$_SERVER[PHP_SELF]?page=$page&limit=$record_limit\">Next $record_limit Records</a>";
+    } else if ($page == 0) {
+        echo "<a href = \"$_SERVER[PHP_SELF]?page=$page&limit=$record_limit\">Next $record_limit Records</a>";
+    }  
+    // free result set
     mysqli_free_result($result);
 ?>
     </table>
