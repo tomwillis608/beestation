@@ -8,7 +8,7 @@ Currently embarassing hacking at simple Arduino and LAMP projects
 
 beestation.ino - contains sketch for listening to a sensor and sending the readings back to a PHP over WiFi
 
-beestation_breadboard.png - Frizing breadboard diagram for the kit
+beestation_breadboard.png - Frizing breadboard diagram for the kit (Note, I am actually using an Adafruit BME280 breakout, not the Sparkfun one shown in the image.
 
 You must create your own MyCommon/mynetwork.h file that defines your own network secrets in your Arduino libraries folder. This must contain these macros, with the dummy values replaced with your own.
 ```C++
@@ -28,12 +28,15 @@ https://learn.adafruit.com/wifi-weather-station-arduino-cc3000/introduction
 
 ##Sensors:
 * DHT22 - Temperature and Humidity. This will be measured outside the hive
-* BMP180 - Pressure and Temperature. This will be measured outside the hive
+* BMP280 - Pressure, Humidity and Temperature. This will be measured outside the hive, at the board.
 * DS2401 - Silicon serial number.  Unique ID for this kit. 
 
 ##To do:
 * Add DS18B20 temperature sensors, in beeproof sleeves, to measure inside the hive
 * Build hive sound volume level meter, in beeproof sleeve
+* Harden wireless code
+* Harden watchdog code
+* Consider hardware reset on hang
 
 -Tom Willis
 

@@ -13,6 +13,51 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="_core">
+      <UniqueIdentifier>{143c4c44-467a-4f7d-a917-01c2f74716da}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="_libraries">
+      <UniqueIdentifier>{45c6349d-642e-4bac-9834-b4e03b5b7801}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="_libraries\Adafruit_BME280_Library-master">
+      <UniqueIdentifier>{7248ae91-27b7-49d2-9b31-fe6e637705e9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="_libraries\Adafruit_BMP085_Unified-master">
+      <UniqueIdentifier>{6abab0bf-aa13-4b9f-89c7-d7930d9e2a58}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="_libraries\Adafruit_CC3000_Library-master">
+      <UniqueIdentifier>{a4f91e74-6019-44f2-b2fa-b1b9f4231708}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="_libraries\Adafruit_CC3000_Library-master\utility">
+      <UniqueIdentifier>{7164bc29-3aca-4def-8dde-a23e293325c8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="_libraries\Adafruit_Sensor-master">
+      <UniqueIdentifier>{8e221db9-4e15-4aa4-8373-0fec6daeb59d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="_libraries\DHT-sensor-library-master">
+      <UniqueIdentifier>{40cd5192-2304-44c4-ae8f-014cd8db7c4c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="_libraries\MyCommon">
+      <UniqueIdentifier>{1fb72c30-fdb4-412d-9da7-b894908a68d8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="_libraries\OneWire">
+      <UniqueIdentifier>{4f473398-9205-430b-ab22-704cf0275d0a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="_libraries\SPI">
+      <UniqueIdentifier>{8a16f64b-abe2-4fb4-9daf-5118bb25c6b7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="_libraries\SPI\src">
+      <UniqueIdentifier>{46b6adb9-b82f-4d69-b9bc-b6d163ac71f6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="_libraries\Wire">
+      <UniqueIdentifier>{b01e4ce2-4277-493e-a1bd-fb5c91052385}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="_libraries\Wire\src">
+      <UniqueIdentifier>{45b5845b-4ea2-4b41-80f3-b2a5db89848e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="_libraries\Wire\src\utility">
+      <UniqueIdentifier>{bf886f61-56d9-4e8a-abdc-b2c250277cf5}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="beestation.ino" />

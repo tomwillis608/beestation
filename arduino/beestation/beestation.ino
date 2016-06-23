@@ -1,27 +1,54 @@
 /*
-*  WiFi beekeeping monitor station with Arduino, the DHT22 temperature and humidity sensor & the CC3000 chip WiFi.
+*  WiFi beekeeping monitor station with Arduino,
+*  BME 280 temperature-pressure-humidity sensor,
+*  DS2401 silicon serial number,
+*  & the CC3000 chip WiFi.
+*
 *  Part of the code is based on the work done by Adafruit on the CC3000 chip & the DHT11 sensor
 *  Based in part on dht11/cc3300 weatherstation written by Marco Schwartz for Open Home Automation
 *  Lots of ideas taken from the many helpful posts in the community online.
 *
 *  Purpose:
-*  Sends data to LAMP backend with HTTP GETs to reduce load from AREST which seemed to make the app unstable on Uno
+*  Sends data to LAMP backend with HTTP GETs
+*  Be stable over all conditions
 *
 *  To Do:
 *   More sensors.
 *   Better watchdogging - still seems to stop sending to the PHP server with MTF 36 hours
 *   Better network recovery code - I saw some ideas online
+*   Powersaving by sleeping instead of waiting
 *
 */
+
+#define USE_DHT 0
+#define USE_CC3300 1
+#define USE_DS2401 1
+#define USE_BMP 0
+#define USE_BME 1
 
 // Include required libraries
 #include <Adafruit_CC3000.h> // wifi library
 #include <SPI.h> // how to talk to adafruit cc3300 board
+#if USE_DHT
 #include <DHT.h> // library to read DHT22 sensor
+#endif // USE_DHT
 #include <OneWire.h> // library to read DS 1-Wire sensors, like DS2401 and DS18B20
+#if USE_BMP
+#include <Wire.h>    // imports the wire library for talking over I2C to the BMP180
+#include <Adafruit_Sensor.h>  // generic sensor library
+#include "Adafruit_BMP085_U.h"  // import the Pressure Sensor Library for BMP180
+#endif // USE_BMP
+#if USE_BME 
+// Using I2C protocol
+//#include <Wire.h>    // imports the wire library for talking over I2C to the BMP180
+//#include <Adafruit_Sensor.h>  // generic sensor library
+// ^^ included by below
+#include <Adafruit_BME280.h>
+#endif // USE_BME
+
 #include <avr/wdt.h> // Watchdog timer
 
-#include <mycommon/mynetwork.h> // defines network secrets and addresses
+#include <mynetwork.h> // defines network secrets and addresses
 // WLAN_SSID
 // WLAN_PASS
 // WEB_SERVER_IP_COMMAS 
@@ -35,9 +62,14 @@
 #define ADAFRUIT_CC3000_VBAT  5
 #define ADAFRUIT_CC3000_CS    10
 
+#if USE_DHT
 // DHT22 sensor pins (temperature/humidy sensor)
 #define DHTPIN 7 
 #define DHTTYPE DHT22
+#endif
+
+// DS2401 bus pin
+#define DS2401PIN 9
 
 // Create global CC3000 instance
 Adafruit_CC3000 gCc3000 = Adafruit_CC3000(ADAFRUIT_CC3000_CS,
@@ -45,8 +77,20 @@ Adafruit_CC3000 gCc3000 = Adafruit_CC3000(ADAFRUIT_CC3000_CS,
 	ADAFRUIT_CC3000_VBAT,
 	SPI_CLOCK_DIV2);
 
+#if USE_DHT
 // create global DHT instance
 DHT gDht(DHTPIN, DHTTYPE);
+#endif //USE_DHT
+
+#if USE_BMP
+// create global sensor object for BMP180
+// Uses analog pins 4 and 5 
+Adafruit_BMP085_Unified gBmp180;
+#endif // USE_BMP
+
+#if USE_BME
+Adafruit_BME280 gBme280; // I2C
+#endif // USE_BME
 
 // PHP server on backend
 const char gWebServer[] = WEB_SERVER_IP_DOTS; // IP Address (or name) of server to dump data to 
@@ -55,9 +99,12 @@ const char gWebServer[] = WEB_SERVER_IP_DOTS; // IP Address (or name) of server 
 unsigned long gTimeNow;
 
 // Variables to be exposed 
-int gTemperature;
-int gHumidity;
-int gConnectTimeout;
+int gHumidity = 0;
+int gPressure = 0;
+int gTemperature = 0;
+
+int gConnectTimeout; // Timeout (msec) for connecting to web server
+
 // Serial Number of this beestation 
 char gSerialNumber[20]; // read from Maxim DS2401 on pin 9
 
@@ -65,12 +112,32 @@ void setup(void)
 {
 	wdt_disable();
 	// Start Serial
-	Serial.begin(9600); // 9600
+	Serial.begin(115200); // 9600
 	Serial.println(F("\n\nInitializing Bee Station"));
 	readSerialNumber();
 
+#if USE_DHT
 	// Initialize DHT22 sensor
 	gDht.begin();
+#endif // USE_DHT
+
+#if USE_BMP
+	// Initialize BMP180 sensor
+	if (!gBmp180.begin())
+	{
+		Serial.print(F("Cannot read BMP180 sensor!"));
+		while (1);
+	}
+#endif // USE_BMP
+
+#if USE_BME
+	// Initialize BMP180 sensor
+	if (!gBme280.begin())
+	{
+		Serial.print(F("Cannot read BME280 sensor!"));
+		while (1);
+	}
+#endif // USE_BME
 
 	// Initialise the CC3000 module
 	if (!gCc3000.begin())
@@ -111,30 +178,24 @@ void loop(void)
 {
 	wdt_reset();
 
-	delay(2);
-	// Measure from DHT
-	gTemperature = gDht.readTemperature();
-	gHumidity = gDht.readHumidity();
-	// Check if any reads failed and exit early (to try again).
-	if (isnan(gTemperature) || isnan(gHumidity)) {
-		Serial.print("Time: ");
-		gTimeNow = millis();
-		//prints time since program started
-		Serial.println(gTimeNow);
-		Serial.println("Cannot read DHT sensor!");
-		return;
-	}
-	//wdt_reset();  
-
-	Serial.print("H: ");
-	Serial.print(gHumidity);
-	Serial.print(" %\t");
-	Serial.print("T: ");
-	Serial.print(gTemperature);
-	Serial.print(" *C ");
-
+	//delay(2);
+#if USE_DHT
+	// Measure from DHT22 
+	measureDht22();
 	wdt_reset();
-	// if you get a connection, report back via serial:  
+#endif // USE_DHT
+
+#if USE_BMP
+	// Measure from BMP180 
+	measureBmp180();
+	wdt_reset();
+#endif
+#if USE_BME
+	// Measure from BMP180 
+	measureBme280();
+	wdt_reset();
+#endif
+
 	uint32_t ip = gCc3000.IP2U32(WEB_SERVER_IP_COMMAS);
 	Serial.print("About to connect to web server ");
 	gCc3000.printIPdotsRev(ip);
@@ -143,14 +204,14 @@ void loop(void)
 	//Serial.print(F("\n\rPinging ")); cc3000.printIPdotsRev(ip); Serial.print(F(" ... "));
 	//uint16_t replies = cc3000.ping(ip, 5);
 	//Serial.print(replies); Serial.println(F(" replies"));
-
-	postReadingsToWeb(ip, gTemperature, gHumidity);
-
+	wdt_reset();
+	postReadingsToWeb(ip, gTemperature, gHumidity, gPressure);
+	wdt_reset();
 	// Check WiFi connection, reset if connection is lost
 	checkAndResetWifi();
 
 	wdt_reset();
-	delayBetweenMeasurements(100); // Wait a few seconds between measurements.
+	delayBetweenMeasurements(20); // Wait a few seconds between measurements.
 }
 
 bool
@@ -175,6 +236,7 @@ displayConnectionDetails(void)
 }
 
 #define ONETHOUSAND 1000
+// take a little nap between measurements
 void
 delayBetweenMeasurements(int delaySeconds)
 {
@@ -186,12 +248,14 @@ delayBetweenMeasurements(int delaySeconds)
 
 
 #define OUTSTRSIZE 256
+// send sensor measurements to the webserver
 void
-postReadingsToWeb(uint32_t ip, int temperature, int humidity)
+postReadingsToWeb(uint32_t ip, int temperature, int humidity, int pressure)
 {
 	// Build the URL string
 	char outStr[OUTSTRSIZE];
 	char itoaBuf[12];
+
 	strlcpy(outStr, ("GET /add_data.php?"), OUTSTRSIZE);
 	strlcat(outStr, ("serial="), OUTSTRSIZE);
 	strlcat(outStr, (gSerialNumber), OUTSTRSIZE);
@@ -203,11 +267,15 @@ postReadingsToWeb(uint32_t ip, int temperature, int humidity)
 	strlcat(outStr, ("humidity="), OUTSTRSIZE);
 	itoa(humidity, itoaBuf, 10);
 	strlcat(outStr, (itoaBuf), OUTSTRSIZE);
+	strlcat(outStr, ("&"), OUTSTRSIZE);
+	strlcat(outStr, ("pressure="), OUTSTRSIZE);
+	itoa(pressure, itoaBuf, 10);
+	strlcat(outStr, (itoaBuf), OUTSTRSIZE);
 	//Serial.println(outStr);
 	postToWeb(ip, outStr);
 }
 
-
+// Send startup or other message about the station to the webserver
 void
 postStatusToWeb(uint32_t ip, const char * message)
 {
@@ -223,6 +291,7 @@ postStatusToWeb(uint32_t ip, const char * message)
 	postToWeb(ip, outStr);
 }
 
+/// Connect to webserver and send it the urlString 
 void
 postToWeb(uint32_t ip, const char * urlString)
 {
@@ -279,20 +348,18 @@ checkAndResetWifi(void) {
 	}
 }
 
-bool 
+bool
 readSerialNumber(void)
 {
 	const char hex[] = "0123456789ABCDEF";
 	byte i = 0, j = 0;
-	boolean present;  
-	byte data;     
-	OneWire ds2401(9); // create local 1-Wire instance on digital wire 9 for digital serial number ds2401
+	boolean present;
+	byte data;
+	OneWire ds2401(DS2401PIN); // create local 1-Wire instance on DS2401PIN for silicon serial number ds2401
 
 	present = ds2401.reset();
-
-	if (present == TRUE) 
-	{
-		Serial.println(F("1-Wire Device present bus 9"));
+	if (present == TRUE) {
+		//Serial.println(F("1-Wire Device present bus"));
 		ds2401.write(0x33);  //Send READ data command to 1-Wire bus
 		for (i = 0; i <= 7; i++) {
 			data = ds2401.read();
@@ -300,13 +367,108 @@ readSerialNumber(void)
 			gSerialNumber[j++] = hex[data % 16];
 		}
 		gSerialNumber[j] = 0;
-		Serial.print(F("Serial Number for this kit: "));
 		Serial.println(gSerialNumber);
 	}
-	else //Nothing is connected in the bus
-	{
-		Serial.println(F("Nothing connected bus 9"));
+	else { //Nothing is connected in the bus 
+  //Serial.println(F("No 1-Wire Device detected on bus"));
 		strlcpy(gSerialNumber, hex, 16);
 	}
+	Serial.print(F("Serial Number for this kit: "));
 	return present;
 }
+
+#if USE_DHT
+void
+measureDht22(void)
+{
+	gTemperatureDht = gDht.readTemperature();
+	gHumidity = gDht.readHumidity();
+	// Check if any reads failed and exit early (to try again).
+	if (isnan(gTemperatureDht) || isnan(gHumidity)) {
+		Serial.print("Time: ");
+		gTimeNow = millis();
+		//prints time since program started
+		Serial.println(gTimeNow);
+		Serial.println("Cannot read DHT sensor!");
+		return;
+	}
+	Serial.print(F("H: "));
+	Serial.print(gHumidity);
+	Serial.print(F(" %\t"));
+	Serial.print(F("T: "));
+	Serial.print(gTemperatureDht);
+	Serial.print(F(" *C "));
+}
+#endif // USE_DHT
+
+#if USE_BMP
+void
+measureBmp180(void)
+{
+	/* Get a new sensor event */
+	sensors_event_t event;
+	float temperature;
+
+	gBmp180.getEvent(&event);
+	wdt_reset();
+	/* Display the results (barometric pressure is measure in hPa) */
+	if (event.pressure) {
+		/* Display atmospheric pressue in hPa */
+		Serial.print(F("Pressure:    "));
+		Serial.print(event.pressure);
+		Serial.print(F(" hPa => "));
+		gPressure = (int)(event.pressure + 0.5);
+		Serial.println(gPressure);
+
+		//float temperature;
+		gBmp180.getTemperature(&temperature);
+		gTemperatureBmp = (int)(temperature + 0.5);
+		Serial.print(F("Temperature: "));
+		Serial.print(temperature);
+		Serial.println(F(" C =>"));
+		Serial.println(gTemperatureBmp);
+	}
+	else {
+		Serial.println(F("BMP sensor error"));
+	}
+}
+#endif // USE_BMP
+
+#if USE_BME
+void
+measureBme280(void)
+{
+	/* Get a new sensor event */
+	sensors_event_t event;
+	float temperature;
+	float pressure;
+	float humidity;
+
+	temperature = gBme280.readTemperature();
+	wdt_reset();
+	pressure = gBme280.readPressure() / 100.0F;
+	wdt_reset();
+	humidity = gBme280.readHumidity();
+
+	/* Display atmospheric pressue in hPa */
+	Serial.print(F("Pressure:    "));
+	Serial.print(pressure);
+	Serial.print(F(" hPa => "));
+	gPressure = (int)(pressure + 0.5);
+	Serial.println(gPressure);
+
+	gTemperature = (int)(temperature + 0.5);
+	Serial.print(F("Temperature: "));
+	Serial.print(temperature);
+	Serial.print(F(" C =>"));
+	Serial.println(gTemperature);
+
+	gHumidity = (int)(humidity + 0.5);
+	Serial.print(F("Humidity: "));
+	Serial.print(humidity);
+	Serial.print(F(" RH =>"));
+	Serial.println(gHumidity);
+
+	wdt_reset();
+}
+#endif // USE_BME
