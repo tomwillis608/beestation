@@ -6,5 +6,8 @@ Currently embarassing hacking at simple Arduino and LAMP projects.  My first Ard
 ardunio/ - contains sketch for listening to a sensor and sending the readings back to a PHP over WiFi.
 server/ - contains php and mysql to use on your LAMP server
 
+To Do:
+ * Add hardware watchdog circuit based on 555 chip. Something between my wireless network and the TCP connect calls locks up 5x a day.
+
 -Tom Willis
 Hacking Arduino for bees
