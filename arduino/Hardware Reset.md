@@ -18,6 +18,6 @@ The 555 chip is new to me, so I enjoyed reading the 555 site http://www.555-time
 
 [![](https://github.com/tomwillis608/beestation/blob/master/arduino/555%20Hardware%20Reset%20bb.png)]
 
-<< Top view of prototype shield here >>
+[![](https://github.com/tomwillis608/beestation/blob/master/arduino/shield%20top.png)]
 
-<< Bottom view of prototype shield here >>
+[![](https://github.com/tomwillis608/beestation/blob/master/arduino/shield%20bottom.png)]
