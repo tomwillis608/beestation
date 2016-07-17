@@ -75,7 +75,7 @@
 Adafruit_CC3000 gCc3000 = Adafruit_CC3000(ADAFRUIT_CC3000_CS,
 	ADAFRUIT_CC3000_IRQ,
 	ADAFRUIT_CC3000_VBAT,
-	SPI_CLOCK_DIV2);
+	SPI_CLOCK_DIV2); 
 
 #if USE_DHT
 // create global DHT instance
@@ -96,21 +96,27 @@ Adafruit_BME280 gBme280; // I2C
 const char gWebServer[] = WEB_SERVER_IP_DOTS; // IP Address (or name) of server to dump data to 
 #define WEB_PORT 80
 
-unsigned long gTimeNow;
+//unsigned long gTimeNow;
+unsigned long gCycles = 0;
 
 // Variables to be exposed 
 int gHumidity = 0;
 int gPressure = 0;
 int gTemperature = 0;
 
-int gConnectTimeout; // Timeout (msec) for connecting to web server
-
 // Serial Number of this beestation 
 char gSerialNumber[20]; // read from Maxim DS2401 on pin 9
+
+const int gRedLED = 2; // LED on pin
+const int gYellowLED = 7; // LED on pin 7
 
 void setup(void)
 {
 	wdt_disable();
+	// Blink LED
+	pinMode(gRedLED, OUTPUT);
+	pinMode(gYellowLED, OUTPUT);
+	digitalWrite(gYellowLED, HIGH);
 	// Start Serial
 	Serial.begin(115200); // 9600
 	Serial.println(F("\n\nInitializing Bee Station"));
@@ -140,44 +146,38 @@ void setup(void)
 #endif // USE_BME
 
 	// Initialise the CC3000 module
-	if (!gCc3000.begin())
-	{
-		while (1);
-	}
-	// cleanup profiles the CC3000 module
-	if (!gCc3000.deleteProfiles())
-	{
-		while (1);
-	}
-
-	// Connect to  WiFi network
-	Serial.println(F("Connecting to WiFi"));
-	gCc3000.connectToAP(WLAN_SSID, WLAN_PASS, WLAN_SECURITY);
-	// Check DHCP
-	while (!gCc3000.checkDHCP())
-	{
-		delay(100);
-		Serial.println(F("Trying WiFi again..."));
-	}
+	//gCc3000 = Adafruit_CC3000(ADAFRUIT_CC3000_CS,
+	//	ADAFRUIT_CC3000_IRQ,
+	//	ADAFRUIT_CC3000_VBAT,
+	//	SPI_CLOCK_DIV2);
+	setupCc3000();
 	displayConnectionDetails();
+	digitalWrite(gRedLED, LOW);
+	delay(2000);
+
 	uint32_t ip = gCc3000.IP2U32(WEB_SERVER_IP_COMMAS);
 	Serial.print(F("About to connect to web server at "));
 	gCc3000.printIPdotsRev(ip);
 	Serial.println();
 	postStatusToWeb(ip, "Start Bee Monitoring Station");
 	Serial.println(F("Looping"));
-	Serial.print(F("Time: "));
-	gTimeNow = millis();
+	//Serial.print(F("Time: "));
+	//gTimeNow = millis();
 	//prints time since program started
-	Serial.println(gTimeNow);
-	gConnectTimeout = 1000;
+	//Serial.println(gTimeNow);
+	digitalWrite(gYellowLED, LOW);
 	wdt_enable(WDTO_8S); // options: WDTO_1S, WDTO_2S, WDTO_4S, WDTO_8S
 }
 
 void loop(void)
 {
 	wdt_reset();
-
+	resetHardwareWatchdog();
+	gCycles++;
+	Serial.print(F("Cycles:"));
+	Serial.println(gCycles);
+	Serial.print(F("Free RAM:"));
+	Serial.println(freeRam());
 	//delay(2);
 #if USE_DHT
 	// Measure from DHT22 
@@ -211,7 +211,7 @@ void loop(void)
 	checkAndResetWifi();
 
 	wdt_reset();
-	delayBetweenMeasurements(20); // Wait a few seconds between measurements.
+	delayBetweenMeasurements(50); // Wait a few seconds between measurements.
 }
 
 bool
@@ -296,15 +296,23 @@ void
 postToWeb(uint32_t ip, const char * urlString)
 {
 	Adafruit_CC3000_Client client;
+	int gConnectTimeout = 2000;
+	unsigned long gTimeNow;
+
+	//cycleLed(gLED);
+	digitalWrite(gRedLED, HIGH);
+	//Serial.println(F("postToweb"));
 	gTimeNow = millis();
 	do {
 		client = gCc3000.connectTCP(ip, WEB_PORT);
+		Serial.println(F("Called connectTCP"));
+		delay(20);
 	} while ((!client.connected()) && ((millis() - gTimeNow) < gConnectTimeout));
 
-	Serial.println(F("Created client interface to web server"));
-	Serial.println(urlString);
 	if (client.connected())
 	{
+		Serial.println(F("Created client interface to web server"));
+		Serial.println(urlString);
 		Serial.println(F("-> Connected"));
 		client.fastrprint(urlString);
 		client.fastrprint(" HTTP/1.1\r\n");
@@ -321,31 +329,19 @@ postToWeb(uint32_t ip, const char * urlString)
 			Serial.print(c);
 		}
 		client.close();
-		Serial.println(F("<- Disonnected"));
+		Serial.println(F("<- Disconnected"));
 		// note the time that the connection was made:
-		Serial.print(F("Time: "));
-		gTimeNow = millis();
+		//Serial.print(F("Time: "));
+		//gTimeNow = millis();
 		//prints time since program started
-		Serial.println(gTimeNow);
+		//Serial.println(gTimeNow);
 	}
 	else
 	{ // you didn't get a connection to the server:
 		Serial.println(F("--> connection failed/n"));
 	}
-}
-
-
-void
-checkAndResetWifi(void) {
-	if (!gCc3000.checkConnected())
-	{
-		Serial.print(F("Time: "));
-		gTimeNow = millis();
-		//prints time since program started
-		Serial.println(gTimeNow);
-		Serial.println(F("Lost WiFi"));
-		while (1) {}
-	}
+	//cycleLed(gLED); 
+	digitalWrite(gRedLED, LOW);
 }
 
 bool
@@ -373,7 +369,7 @@ readSerialNumber(void)
   //Serial.println(F("No 1-Wire Device detected on bus"));
 		strlcpy(gSerialNumber, hex, 16);
 	}
-	Serial.print(F("Serial Number for this kit: "));
+	//Serial.print(F("Serial Number for this kit: "));
 	return present;
 }
 
@@ -450,25 +446,109 @@ measureBme280(void)
 	wdt_reset();
 	humidity = gBme280.readHumidity();
 
-	/* Display atmospheric pressue in hPa */
-	Serial.print(F("Pressure:    "));
-	Serial.print(pressure);
-	Serial.print(F(" hPa => "));
 	gPressure = (int)(pressure + 0.5);
-	Serial.println(gPressure);
+	//Serial.print(F("Pressure:    "));
+	//Serial.print(pressure);
+	//Serial.print(F(" hPa => "));
+	//Serial.println(gPressure);
 
 	gTemperature = (int)(temperature + 0.5);
-	Serial.print(F("Temperature: "));
-	Serial.print(temperature);
-	Serial.print(F(" C =>"));
-	Serial.println(gTemperature);
+	//Serial.print(F("Temperature: "));
+	//Serial.print(temperature);
+	//Serial.print(F(" C =>"));
+	//Serial.println(gTemperature);
 
 	gHumidity = (int)(humidity + 0.5);
-	Serial.print(F("Humidity: "));
-	Serial.print(humidity);
-	Serial.print(F(" RH =>"));
-	Serial.println(gHumidity);
+	//Serial.print(F("Humidity: "));
+	//Serial.print(humidity);
+	//Serial.print(F(" RH =>"));
+	//Serial.println(gHumidity);
 
 	wdt_reset();
 }
 #endif // USE_BME
+
+void
+setupCc3000(void)
+{
+	bool result = FALSE;
+
+	if (!gCc3000.begin())
+	{
+		Serial.println(F("CC3000 failed to initialize"));
+		do { /* do nothing without reset, let the watchdog bite */ } while (1);
+	}
+	// cleanup profiles the CC3000 module
+	if (!gCc3000.deleteProfiles())
+	{
+		do { /* do nothing without reset, let the watchdog bite */ } while (1);
+	}
+
+	// Connect to  WiFi network
+	Serial.println(F("Connecting to WiFi"));
+	gCc3000.connectToAP(WLAN_SSID, WLAN_PASS, WLAN_SECURITY);
+
+	// Check DHCP
+	int dhcpCount = 0;
+	while (!gCc3000.checkDHCP())
+	{
+		delay(100);
+		Serial.println(F("Trying WiFi again..."));
+		if (++dhcpCount > 100) {
+			do { /* do nothing without reset, let the watchdog bite */ } while (1);
+		}
+	}
+}
+
+void
+checkAndResetWifi(void) 
+{
+	unsigned long gTimeNow;
+
+	wdt_reset();
+	if (!gCc3000.checkConnected() /* || (gCycles>5)*/ )
+	{
+		Serial.print(F("Time: "));
+		gTimeNow = millis();
+		//prints time since program started
+		Serial.println(gTimeNow);
+		Serial.println(F("Lost WiFi. Rebooting CC3300"));
+		gCc3000.disconnect();
+		gCc3000.stop();
+		/*
+		gCc3000 = Adafruit_CC3000(ADAFRUIT_CC3000_CS,
+			ADAFRUIT_CC3000_IRQ,
+			ADAFRUIT_CC3000_VBAT,
+			SPI_CLOCK_DIV2);
+		delay(20);
+		*/
+		wdt_reset();
+		gCc3000.reboot(0);
+		// setupCc3000() was rarely finishing before the watchdog bites, so let it
+		do { /* do nothing without reset, let the watchdog bite */ } while (1);
+	}
+}
+
+int 
+freeRam(void) {
+	extern int __heap_start, *__brkval;
+	int v;
+	return (int)&v - (__brkval == 0 ? (int)&__heap_start : (int)__brkval);
+}
+
+void
+cycleLed(int pin)
+{
+	uint8_t mode = LOW;
+
+	mode = (mode == HIGH) ? LOW : HIGH;
+	digitalWrite(pin, mode);
+}
+
+void
+resetHardwareWatchdog(void)
+{
+	pinMode(DD4, OUTPUT);
+	delay(200);
+	pinMode(DD4, INPUT);
+}
