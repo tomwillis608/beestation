@@ -1,6 +1,6 @@
 # beestation/arduino
 
-Arduino sketch for wireless bee monitoring station experiments
+Arduino sketch for wireless beehive monitoring station experiments
 
 Currently embarassing hacking at simple Arduino and LAMP projects
 
@@ -21,22 +21,24 @@ You must create your own MyCommon/mynetwork.h file that defines your own network
 
 I'm using the Visual Micro extension for Visual Studio because I like single-step debugging but you can use the sketch without all the Visual Studio clutter.
 
-##THANKS:
+## THANKS:
 Thanks to Marc-Oliver Schwartz for this excellent walkthrough of creating an Arduino weather station, with testing as you go.  I based much of this on his example. 
 https://www.openhomeautomation.net/arduino-wifi-cc3000/
 https://learn.adafruit.com/wifi-weather-station-arduino-cc3000/introduction
 
-##Sensors:
-* DHT22 - Temperature and Humidity. This will be measured outside the hive
-* BMP280 - Pressure, Humidity and Temperature. This will be measured outside the hive, at the board.
+## Sensors:
+* BME280 - Pressure, Humidity and Temperature. This will be measured outside the hive, at the board.
 * DS2401 - Silicon serial number.  Unique ID for this kit. 
 
-##To do:
+## Hardware watchdog
+* NE555-based watchdog timer added to reset the Arduino if any of the code locks up
+*  
+## To do:
 * Add DS18B20 temperature sensors, in beeproof sleeves, to measure inside the hive
 * Build hive sound volume level meter, in beeproof sleeve
 * Harden wireless code
-* Harden watchdog code
-* Consider hardware reset on hang
+* Use built-in WTD watchdog for power-saving sleep
+* On server end, collect local temperature and pressure from WU or other API as control values
 
 -Tom Willis
 

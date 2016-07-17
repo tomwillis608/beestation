@@ -1,4 +1,4 @@
-#Hardware watchdog for Ardunio
+# https://github.com/tomwillis608/beestation/blob/master/arduino/555%20Hardware%20Reset%20bb.pngHardware watchdog for Ardunio
 
 Somewhere in the interaction of my wireless network, which has some instabilities I have not yet sorted out, and the CC3300 WiFi on my Arduino beestation, I am getting lockups of the sketch, typically in the TCP conenct calls.  This seems to happend about four times a day, on average. The built-in AVR watch dog timer does not consistently reset the Arduino when this happens.  I decided to add a hardware watchdog to suppliment and perhaps replace the built-in AVR watchdog.  (TO DO: repurpose the AVR WTD to put the system to sleep in between measurements to conserve power.)
 
@@ -16,7 +16,7 @@ One of several 555 calculators is here: http://www.csgnetwork.com/ne555timer2cal
 
 The 555 chip is new to me, so I enjoyed reading the 555 site http://www.555-timer-circuits.com/, especially the FAQ at http://www.555-timer-circuits.com/common-mistakes.html
 
-<< Breadboard design here >>
+[![](https://github.com/tomwillis608/beestation/blob/master/arduino/555%20Hardware%20Reset%20bb.png)]
 
 << Top view of prototype shield here >>
 
