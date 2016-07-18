@@ -29,15 +29,7 @@
 // Include required libraries
 #include <Adafruit_CC3000.h> // wifi library
 #include <SPI.h> // how to talk to adafruit cc3300 board
-#if USE_DHT
-#include <DHT.h> // library to read DHT22 sensor
-#endif // USE_DHT
 #include <OneWire.h> // library to read DS 1-Wire sensors, like DS2401 and DS18B20
-#if USE_BMP
-#include <Wire.h>    // imports the wire library for talking over I2C to the BMP180
-#include <Adafruit_Sensor.h>  // generic sensor library
-#include "Adafruit_BMP085_U.h"  // import the Pressure Sensor Library for BMP180
-#endif // USE_BMP
 #if USE_BME 
 // Using I2C protocol
 //#include <Wire.h>    // imports the wire library for talking over I2C to the BMP180
@@ -62,12 +54,6 @@
 #define ADAFRUIT_CC3000_VBAT  5
 #define ADAFRUIT_CC3000_CS    10
 
-#if USE_DHT
-// DHT22 sensor pins (temperature/humidy sensor)
-#define DHTPIN 7 
-#define DHTTYPE DHT22
-#endif
-
 // DS2401 bus pin
 #define DS2401PIN 9
 
@@ -76,17 +62,6 @@ Adafruit_CC3000 gCc3000 = Adafruit_CC3000(ADAFRUIT_CC3000_CS,
 	ADAFRUIT_CC3000_IRQ,
 	ADAFRUIT_CC3000_VBAT,
 	SPI_CLOCK_DIV2); 
-
-#if USE_DHT
-// create global DHT instance
-DHT gDht(DHTPIN, DHTTYPE);
-#endif //USE_DHT
-
-#if USE_BMP
-// create global sensor object for BMP180
-// Uses analog pins 4 and 5 
-Adafruit_BMP085_Unified gBmp180;
-#endif // USE_BMP
 
 #if USE_BME
 Adafruit_BME280 gBme280; // I2C
@@ -121,20 +96,6 @@ void setup(void)
 	Serial.begin(115200); // 9600
 	Serial.println(F("\n\nInitializing Bee Station"));
 	readSerialNumber();
-
-#if USE_DHT
-	// Initialize DHT22 sensor
-	gDht.begin();
-#endif // USE_DHT
-
-#if USE_BMP
-	// Initialize BMP180 sensor
-	if (!gBmp180.begin())
-	{
-		Serial.print(F("Cannot read BMP180 sensor!"));
-		while (1);
-	}
-#endif // USE_BMP
 
 #if USE_BME
 	// Initialize BMP180 sensor
@@ -178,18 +139,7 @@ void loop(void)
 	Serial.println(gCycles);
 	Serial.print(F("Free RAM:"));
 	Serial.println(freeRam());
-	//delay(2);
-#if USE_DHT
-	// Measure from DHT22 
-	measureDht22();
-	wdt_reset();
-#endif // USE_DHT
 
-#if USE_BMP
-	// Measure from BMP180 
-	measureBmp180();
-	wdt_reset();
-#endif
 #if USE_BME
 	// Measure from BMP180 
 	measureBme280();
@@ -373,63 +323,6 @@ readSerialNumber(void)
 	return present;
 }
 
-#if USE_DHT
-void
-measureDht22(void)
-{
-	gTemperatureDht = gDht.readTemperature();
-	gHumidity = gDht.readHumidity();
-	// Check if any reads failed and exit early (to try again).
-	if (isnan(gTemperatureDht) || isnan(gHumidity)) {
-		Serial.print("Time: ");
-		gTimeNow = millis();
-		//prints time since program started
-		Serial.println(gTimeNow);
-		Serial.println("Cannot read DHT sensor!");
-		return;
-	}
-	Serial.print(F("H: "));
-	Serial.print(gHumidity);
-	Serial.print(F(" %\t"));
-	Serial.print(F("T: "));
-	Serial.print(gTemperatureDht);
-	Serial.print(F(" *C "));
-}
-#endif // USE_DHT
-
-#if USE_BMP
-void
-measureBmp180(void)
-{
-	/* Get a new sensor event */
-	sensors_event_t event;
-	float temperature;
-
-	gBmp180.getEvent(&event);
-	wdt_reset();
-	/* Display the results (barometric pressure is measure in hPa) */
-	if (event.pressure) {
-		/* Display atmospheric pressue in hPa */
-		Serial.print(F("Pressure:    "));
-		Serial.print(event.pressure);
-		Serial.print(F(" hPa => "));
-		gPressure = (int)(event.pressure + 0.5);
-		Serial.println(gPressure);
-
-		//float temperature;
-		gBmp180.getTemperature(&temperature);
-		gTemperatureBmp = (int)(temperature + 0.5);
-		Serial.print(F("Temperature: "));
-		Serial.print(temperature);
-		Serial.println(F(" C =>"));
-		Serial.println(gTemperatureBmp);
-	}
-	else {
-		Serial.println(F("BMP sensor error"));
-	}
-}
-#endif // USE_BMP
-
 #if USE_BME
 void
 measureBme280(void)
@@ -545,6 +438,7 @@ cycleLed(int pin)
 	digitalWrite(pin, mode);
 }
 
+// Feed the dog so it doesn't bite
 void
 resetHardwareWatchdog(void)
 {
