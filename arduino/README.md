@@ -32,7 +32,7 @@ https://learn.adafruit.com/wifi-weather-station-arduino-cc3000/introduction
 
 ## Hardware watchdog
 * NE555-based watchdog timer added to reset the Arduino if any of the code locks up
-*  
+  
 ## To do:
 * Add DS18B20 temperature sensors, in beeproof sleeves, to measure inside the hive
 * Build hive sound volume level meter, in beeproof sleeve
