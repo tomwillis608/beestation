@@ -9,8 +9,8 @@
 *  Lots of ideas taken from the many helpful posts in the community online.
 *
 *  Purpose:
-*  Sends data to LAMP backend with HTTP GETs
-*  Be stable over all conditions
+*   Sends data to LAMP backend with HTTP GETs
+*   Be stable over all conditions
 *
 *  To Do:
 *   More sensors.
@@ -21,10 +21,11 @@
 */
 
 #define USE_DHT 0
-#define USE_CC3300 1
+#define USE_CC3300 01
 #define USE_DS2401 1
 #define USE_BMP 0
 #define USE_BME 1
+#define MY_DEBUG 1
 
 // Include required libraries
 #include <Adafruit_CC3000.h> // wifi library
@@ -82,7 +83,7 @@ int gTemperature = 0;
 // Serial Number of this beestation 
 char gSerialNumber[20]; // read from Maxim DS2401 on pin 9
 
-const int gRedLED = 2; // LED on pin
+const int gRedLED = 8; // LED on pin
 const int gYellowLED = 7; // LED on pin 7
 
 void setup(void)
@@ -92,6 +93,10 @@ void setup(void)
 	pinMode(gRedLED, OUTPUT);
 	pinMode(gYellowLED, OUTPUT);
 	digitalWrite(gYellowLED, HIGH);
+	digitalWrite(gRedLED, HIGH);
+	delay(500);
+	digitalWrite(gRedLED, LOW);
+
 	// Start Serial
 	Serial.begin(115200); // 9600
 	Serial.println(F("\n\nInitializing Bee Station"));
@@ -106,6 +111,7 @@ void setup(void)
 	}
 #endif // USE_BME
 
+#if USE_CC3300
 	// Initialise the CC3000 module
 	//gCc3000 = Adafruit_CC3000(ADAFRUIT_CC3000_CS,
 	//	ADAFRUIT_CC3000_IRQ,
@@ -113,9 +119,11 @@ void setup(void)
 	//	SPI_CLOCK_DIV2);
 	setupCc3000();
 	displayConnectionDetails();
-	digitalWrite(gRedLED, LOW);
+#endif // USE_CC3300
+	//digitalWrite(gRedLED, LOW);
 	delay(2000);
 
+#if USE_CC3300
 	uint32_t ip = gCc3000.IP2U32(WEB_SERVER_IP_COMMAS);
 	Serial.print(F("About to connect to web server at "));
 	gCc3000.printIPdotsRev(ip);
@@ -126,6 +134,7 @@ void setup(void)
 	//gTimeNow = millis();
 	//prints time since program started
 	//Serial.println(gTimeNow);
+#endif
 	digitalWrite(gYellowLED, LOW);
 	wdt_enable(WDTO_8S); // options: WDTO_1S, WDTO_2S, WDTO_4S, WDTO_8S
 }
@@ -138,7 +147,7 @@ void loop(void)
 	Serial.print(F("Cycles:"));
 	Serial.println(gCycles);
 	Serial.print(F("Free RAM:"));
-	Serial.println(freeRam());
+	Serial.println(calculateFreeRam());
 
 #if USE_BME
 	// Measure from BMP180 
@@ -146,6 +155,7 @@ void loop(void)
 	wdt_reset();
 #endif
 
+#if USE_CC3300
 	uint32_t ip = gCc3000.IP2U32(WEB_SERVER_IP_COMMAS);
 	Serial.print("About to connect to web server ");
 	gCc3000.printIPdotsRev(ip);
@@ -159,7 +169,7 @@ void loop(void)
 	wdt_reset();
 	// Check WiFi connection, reset if connection is lost
 	checkAndResetWifi();
-
+#endif // USE_CC3300
 	wdt_reset();
 	delayBetweenMeasurements(50); // Wait a few seconds between measurements.
 }
@@ -171,6 +181,7 @@ displayConnectionDetails(void)
 
 	if (!gCc3000.getIPAddress(&ipAddress, &netmask, &gateway, &dhcpserv, &dnsserv))
 	{
+		Serial.println(F("Can't get IP addresses"));
 		return false;
 	}
 	else
@@ -328,7 +339,7 @@ void
 measureBme280(void)
 {
 	/* Get a new sensor event */
-	sensors_event_t event;
+	//sensors_event_t event;
 	float temperature;
 	float pressure;
 	float humidity;
@@ -340,23 +351,28 @@ measureBme280(void)
 	humidity = gBme280.readHumidity();
 
 	gPressure = (int)(pressure + 0.5);
-	//Serial.print(F("Pressure:    "));
-	//Serial.print(pressure);
-	//Serial.print(F(" hPa => "));
-	//Serial.println(gPressure);
+#if MY_DEBUG
+	Serial.print(F("Pressure:    "));
+	Serial.print(pressure);
+	Serial.print(F(" hPa => "));
+	Serial.println(gPressure);
+#endif // MY_DEBUG
 
 	gTemperature = (int)(temperature + 0.5);
-	//Serial.print(F("Temperature: "));
-	//Serial.print(temperature);
-	//Serial.print(F(" C =>"));
-	//Serial.println(gTemperature);
+#if MY_DEBUG
+	Serial.print(F("Temperature: "));
+	Serial.print(temperature);
+	Serial.print(F(" C =>"));
+	Serial.println(gTemperature);
+#endif
 
 	gHumidity = (int)(humidity + 0.5);
-	//Serial.print(F("Humidity: "));
-	//Serial.print(humidity);
-	//Serial.print(F(" RH =>"));
-	//Serial.println(gHumidity);
-
+#if MY_DEBUG
+	Serial.print(F("Humidity: "));
+	Serial.print(humidity);
+	Serial.print(F(" RH =>"));
+	Serial.println(gHumidity);
+#endif 
 	wdt_reset();
 }
 #endif // USE_BME
@@ -365,7 +381,7 @@ void
 setupCc3000(void)
 {
 	bool result = FALSE;
-
+	Serial.println(F("CC3000 setup..."));
 	if (!gCc3000.begin())
 	{
 		Serial.println(F("CC3000 failed to initialize"));
@@ -374,6 +390,7 @@ setupCc3000(void)
 	// cleanup profiles the CC3000 module
 	if (!gCc3000.deleteProfiles())
 	{
+		Serial.println(F("CC3000 failed to delete old profiles"));
 		do { /* do nothing without reset, let the watchdog bite */ } while (1);
 	}
 
@@ -423,7 +440,7 @@ checkAndResetWifi(void)
 }
 
 int 
-freeRam(void) {
+calculateFreeRam(void) {
 	extern int __heap_start, *__brkval;
 	int v;
 	return (int)&v - (__brkval == 0 ? (int)&__heap_start : (int)__brkval);
