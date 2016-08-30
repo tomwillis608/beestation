@@ -1,41 +1,42 @@
 /*
 *  WiFi beekeeping monitor station with Arduino,
 *  BME 280 temperature-pressure-humidity sensor,
-*  DS2401 silicon serial number,
+*  Maxim DS2401 silicon serial number,
+*  Maxim DS18B20 temperature sensors,
 *  & the CC3000 chip WiFi.
 *
-*  Part of the code is based on the work done by Adafruit on the CC3000 chip & the DHT11 sensor
-*  Based in part on dht11/cc3300 weatherstation written by Marco Schwartz for Open Home Automation
+*  Part of the code is based on the work done by Adafruit on the CC3000 chip & the DHT11 sensor.
+*  Based in part on dht11/cc3300 weatherstation written by Marco Schwartz for Open Home Automation.
+*  Based in part on OneWire/DS18B20 sample code from the OneWire library.
 *  Lots of ideas taken from the many helpful posts in the community online.
 *
 *  Purpose:
 *   Sends data to LAMP backend with HTTP GETs
-*   Be stable over all conditions
+*   Be stable over all conditions (Hardware reset cicruit currently required)
 *
 *  To Do:
-*   More sensors.
-*   Better watchdogging - still seems to stop sending to the PHP server with MTF 36 hours
+*   More sensors, besides temperature. <<In Progress>>
 *   Better network recovery code - I saw some ideas online
 *   Powersaving by sleeping instead of waiting
+*   Reduce code size
 *
 */
 
 #define USE_DHT 0
 #define USE_CC3300 01
 #define USE_DS2401 1
+#define USE_DS18B20 1
 #define USE_BMP 0
 #define USE_BME 1
-#define MY_DEBUG 1
+#define MY_DEBUG 0
 
 // Include required libraries
 #include <Adafruit_CC3000.h> // wifi library
 #include <SPI.h> // how to talk to adafruit cc3300 board
-#include <OneWire.h> // library to read DS 1-Wire sensors, like DS2401 and DS18B20
+#include <OneWire.h> // PJRC OneWire library to read DS 1-Wire sensors, like DS2401 and DS18B20
+					 // http://www.pjrc.com/teensy/td_libs_OneWire.html
 #if USE_BME 
 // Using I2C protocol
-//#include <Wire.h>    // imports the wire library for talking over I2C to the BMP180
-//#include <Adafruit_Sensor.h>  // generic sensor library
-// ^^ included by below
 #include <Adafruit_BME280.h>
 #endif // USE_BME
 
@@ -57,20 +58,28 @@
 
 // DS2401 bus pin
 #define DS2401PIN 9
+#define DS18B20PIN 6
 
 // Create global CC3000 instance
 Adafruit_CC3000 gCc3000 = Adafruit_CC3000(ADAFRUIT_CC3000_CS,
 	ADAFRUIT_CC3000_IRQ,
 	ADAFRUIT_CC3000_VBAT,
-	SPI_CLOCK_DIV2); 
+	SPI_CLOCK_DIVIDER);
 
 #if USE_BME
 Adafruit_BME280 gBme280; // I2C
 #endif // USE_BME
 
+#if USE_DS18B20
+OneWire gDs(DS18B20PIN);
+int gDevices;
+byte gDsAddrs[5][8];
+#endif // USE_DS18B20
+
 // PHP server on backend
 const char gWebServer[] = WEB_SERVER_IP_DOTS; // IP Address (or name) of server to dump data to 
 #define WEB_PORT 80
+uint32_t gIp;
 
 //unsigned long gTimeNow;
 unsigned long gCycles = 0;
@@ -79,6 +88,10 @@ unsigned long gCycles = 0;
 int gHumidity = 0;
 int gPressure = 0;
 int gTemperature = 0;
+int gTempHive2Inch = 0;
+int gTempHive6Inch = 0;
+int gTempHive10Inch = 0;
+int gTempBox = 0;
 
 // Serial Number of this beestation 
 char gSerialNumber[20]; // read from Maxim DS2401 on pin 9
@@ -99,8 +112,14 @@ void setup(void)
 
 	// Start Serial
 	Serial.begin(115200); // 9600
-	Serial.println(F("\n\nInitializing Bee Station"));
-	readSerialNumber();
+	Serial.print(F("\n\nInitializing Bee Station #"));
+
+	// DS2401
+	readSerialNumber(); // Populate gSerialNumber
+	printFreeRam();
+#if USE_DS18B20 
+	setupDs18B20();
+#endif // USE_DS18B20 
 
 #if USE_BME
 	// Initialize BMP180 sensor
@@ -111,30 +130,22 @@ void setup(void)
 	}
 #endif // USE_BME
 
+	printFreeRam();
+
 #if USE_CC3300
-	// Initialise the CC3000 module
-	//gCc3000 = Adafruit_CC3000(ADAFRUIT_CC3000_CS,
-	//	ADAFRUIT_CC3000_IRQ,
-	//	ADAFRUIT_CC3000_VBAT,
-	//	SPI_CLOCK_DIV2);
 	setupCc3000();
 	displayConnectionDetails();
 #endif // USE_CC3300
 	//digitalWrite(gRedLED, LOW);
 	delay(2000);
-
 #if USE_CC3300
-	uint32_t ip = gCc3000.IP2U32(WEB_SERVER_IP_COMMAS);
-	Serial.print(F("About to connect to web server at "));
-	gCc3000.printIPdotsRev(ip);
+	gIp = gCc3000.IP2U32(WEB_SERVER_IP_COMMAS);
+	Serial.print(F("Connecting to web server "));
+	gCc3000.printIPdotsRev(gIp);
 	Serial.println();
-	postStatusToWeb(ip, "Start Bee Monitoring Station");
-	Serial.println(F("Looping"));
-	//Serial.print(F("Time: "));
-	//gTimeNow = millis();
-	//prints time since program started
-	//Serial.println(gTimeNow);
+	postStatusToWeb(gIp, "Start");
 #endif
+	Serial.println(F("Looping"));
 	digitalWrite(gYellowLED, LOW);
 	wdt_enable(WDTO_8S); // options: WDTO_1S, WDTO_2S, WDTO_4S, WDTO_8S
 }
@@ -146,32 +157,40 @@ void loop(void)
 	gCycles++;
 	Serial.print(F("Cycles:"));
 	Serial.println(gCycles);
-	Serial.print(F("Free RAM:"));
-	Serial.println(calculateFreeRam());
+	printFreeRam();
 
 #if USE_BME
 	// Measure from BMP180 
 	measureBme280();
+	// As I suspected, the temperature reading on the particular BME280 sensor is high about 1 degree C
+	// compared to other temperature measurements - 29 Aug 2016 TCW
 	wdt_reset();
 #endif
 
-#if USE_CC3300
-	uint32_t ip = gCc3000.IP2U32(WEB_SERVER_IP_COMMAS);
-	Serial.print("About to connect to web server ");
-	gCc3000.printIPdotsRev(ip);
-	Serial.println();
-	// Optional: Do a ping test on the website
-	//Serial.print(F("\n\rPinging ")); cc3000.printIPdotsRev(ip); Serial.print(F(" ... "));
-	//uint16_t replies = cc3000.ping(ip, 5);
-	//Serial.print(replies); Serial.println(F(" replies"));
+#if USE_DS18B20
+	measureDs18B20();
 	wdt_reset();
-	postReadingsToWeb(ip, gTemperature, gHumidity, gPressure);
+#endif // USE_DS18B20
+
+#if USE_CC3300
+	Serial.println(F("Connecting to web server"));
+	wdt_reset();
+	postReadingsToWeb(gIp, gTemperature, gHumidity, gPressure, gTempBox, gTempHive2Inch, gTempHive6Inch, gTempHive10Inch);
+	wdt_reset();
+	if (0 == (gCycles % 100)) {
+		char message[64];
+		char iBuf[12];
+		//strlcpy(message, ("Completed "), 64);
+		strlcpy(message, itoa(gCycles, iBuf, 10), 64);
+		strlcat(message, ("%20cycles"), 64);
+		postStatusToWeb(gIp, message);
+	}
 	wdt_reset();
 	// Check WiFi connection, reset if connection is lost
 	checkAndResetWifi();
 #endif // USE_CC3300
 	wdt_reset();
-	delayBetweenMeasurements(50); // Wait a few seconds between measurements.
+	delayBetweenMeasurements(70); // Wait about a minute between measurements.
 }
 
 bool
@@ -181,29 +200,26 @@ displayConnectionDetails(void)
 
 	if (!gCc3000.getIPAddress(&ipAddress, &netmask, &gateway, &dhcpserv, &dnsserv))
 	{
-		Serial.println(F("Can't get IP addresses"));
+		Serial.println(F("Can't get IP addr"));
 		return false;
 	}
 	else
 	{
-		Serial.println(F("\nIP Addr: ")); gCc3000.printIPdotsRev(ipAddress);
-		Serial.print(F("\nNetmask: ")); gCc3000.printIPdotsRev(netmask);
+		Serial.print(F("IP Addr: ")); gCc3000.printIPdotsRev(ipAddress);
 		Serial.print(F("\nGateway: ")); gCc3000.printIPdotsRev(gateway);
-		Serial.print(F("\nDHCPsrv: ")); gCc3000.printIPdotsRev(dhcpserv);
-		Serial.print(F("\nDNSserv: ")); gCc3000.printIPdotsRev(dnsserv);
 		Serial.println("");
 		return true;
 	}
 }
 
-#define ONETHOUSAND 1000
+#define MILLISEC_IN_A_SECOND 1000
 // take a little nap between measurements
 void
 delayBetweenMeasurements(int delaySeconds)
 {
 	for (int i = 0; i < delaySeconds; i++) {
 		wdt_reset();
-		delay(ONETHOUSAND);
+		delay(MILLISEC_IN_A_SECOND);
 	}
 }
 
@@ -211,28 +227,47 @@ delayBetweenMeasurements(int delaySeconds)
 #define OUTSTRSIZE 256
 // send sensor measurements to the webserver
 void
-postReadingsToWeb(uint32_t ip, int temperature, int humidity, int pressure)
+postReadingsToWeb(uint32_t ip, int temperature, int humidity, int pressure,
+	int tBox, int t2In, int t6In, int t10In)
 {
 	// Build the URL string
 	char outStr[OUTSTRSIZE];
 	char itoaBuf[12];
 
 	strlcpy(outStr, ("GET /add_data.php?"), OUTSTRSIZE);
-	strlcat(outStr, ("serial="), OUTSTRSIZE);
+	strlcat(outStr, ("sn="), OUTSTRSIZE);
 	strlcat(outStr, (gSerialNumber), OUTSTRSIZE);
 	strlcat(outStr, ("&"), OUTSTRSIZE);
-	strlcat(outStr, ("temperature="), OUTSTRSIZE);
+	strlcat(outStr, ("t1="), OUTSTRSIZE);
 	itoa(temperature, itoaBuf, 10);
 	strlcat(outStr, (itoaBuf), OUTSTRSIZE);
 	strlcat(outStr, ("&"), OUTSTRSIZE);
-	strlcat(outStr, ("humidity="), OUTSTRSIZE);
+	strlcat(outStr, ("hu="), OUTSTRSIZE);
 	itoa(humidity, itoaBuf, 10);
 	strlcat(outStr, (itoaBuf), OUTSTRSIZE);
 	strlcat(outStr, ("&"), OUTSTRSIZE);
-	strlcat(outStr, ("pressure="), OUTSTRSIZE);
+	strlcat(outStr, ("pr="), OUTSTRSIZE);
 	itoa(pressure, itoaBuf, 10);
 	strlcat(outStr, (itoaBuf), OUTSTRSIZE);
+	/**/
+	strlcat(outStr, ("&"), OUTSTRSIZE);
+	strlcat(outStr, ("t2="), OUTSTRSIZE);
+	itoa(tBox, itoaBuf, 10);
+	strlcat(outStr, (itoaBuf), OUTSTRSIZE);
+	strlcat(outStr, ("&"), OUTSTRSIZE);
+	strlcat(outStr, ("t3="), OUTSTRSIZE);
+	itoa(t10In, itoaBuf, 10);
+	strlcat(outStr, (itoaBuf), OUTSTRSIZE);
+	strlcat(outStr, ("&"), OUTSTRSIZE);
+	strlcat(outStr, ("t4="), OUTSTRSIZE);
+	itoa(t6In, itoaBuf, 10);
+	strlcat(outStr, (itoaBuf), OUTSTRSIZE);
+	strlcat(outStr, ("&"), OUTSTRSIZE);
+	strlcat(outStr, ("t5="), OUTSTRSIZE);
+	itoa(t10In, itoaBuf, 10);
+	strlcat(outStr, (itoaBuf), OUTSTRSIZE);
 	//Serial.println(outStr);
+	/**/
 	postToWeb(ip, outStr);
 }
 
@@ -248,7 +283,6 @@ postStatusToWeb(uint32_t ip, const char * message)
 	strlcat(outStr, ("&"), OUTSTRSIZE);
 	strlcat(outStr, ("message="), OUTSTRSIZE);
 	strlcat(outStr, (message), OUTSTRSIZE);
-	//Serial.println(outStr);
 	postToWeb(ip, outStr);
 }
 
@@ -257,7 +291,7 @@ void
 postToWeb(uint32_t ip, const char * urlString)
 {
 	Adafruit_CC3000_Client client;
-	int gConnectTimeout = 2000;
+	unsigned int gConnectTimeout = 2000;
 	unsigned long gTimeNow;
 
 	//cycleLed(gLED);
@@ -265,16 +299,17 @@ postToWeb(uint32_t ip, const char * urlString)
 	//Serial.println(F("postToweb"));
 	gTimeNow = millis();
 	do {
+		Serial.println(F("->connectTCP"));
 		client = gCc3000.connectTCP(ip, WEB_PORT);
-		Serial.println(F("Called connectTCP"));
+		Serial.println(F("<-connectTCP"));
 		delay(20);
 	} while ((!client.connected()) && ((millis() - gTimeNow) < gConnectTimeout));
 
 	if (client.connected())
 	{
-		Serial.println(F("Created client interface to web server"));
+		//Serial.println(F("Created client interface"));
 		Serial.println(urlString);
-		Serial.println(F("-> Connected"));
+		Serial.println(F("->")); //  Connected
 		client.fastrprint(urlString);
 		client.fastrprint(" HTTP/1.1\r\n");
 		client.fastrprint("Host: ");
@@ -290,12 +325,7 @@ postToWeb(uint32_t ip, const char * urlString)
 			Serial.print(c);
 		}
 		client.close();
-		Serial.println(F("<- Disconnected"));
-		// note the time that the connection was made:
-		//Serial.print(F("Time: "));
-		//gTimeNow = millis();
-		//prints time since program started
-		//Serial.println(gTimeNow);
+		Serial.println(F("<-")); // Disconnected
 	}
 	else
 	{ // you didn't get a connection to the server:
@@ -380,7 +410,6 @@ measureBme280(void)
 void
 setupCc3000(void)
 {
-	bool result = FALSE;
 	Serial.println(F("CC3000 setup..."));
 	if (!gCc3000.begin())
 	{
@@ -411,12 +440,12 @@ setupCc3000(void)
 }
 
 void
-checkAndResetWifi(void) 
+checkAndResetWifi(void)
 {
 	unsigned long gTimeNow;
 
 	wdt_reset();
-	if (!gCc3000.checkConnected() /* || (gCycles>5)*/ )
+	if (!gCc3000.checkConnected() /* || (gCycles>5)*/)
 	{
 		Serial.print(F("Time: "));
 		gTimeNow = millis();
@@ -439,7 +468,7 @@ checkAndResetWifi(void)
 	}
 }
 
-int 
+int
 calculateFreeRam(void) {
 	extern int __heap_start, *__brkval;
 	int v;
@@ -463,3 +492,213 @@ resetHardwareWatchdog(void)
 	delay(200);
 	pinMode(DD4, INPUT);
 }
+
+// DS 18B20 Temperature sensor array
+
+void
+setupDs18B20(void)
+{
+
+	gDevices = countDsDevices(gDs);
+	Serial.print(F("Found "));
+	Serial.print(gDevices);
+	Serial.println(F(" devices on bus"));
+	for (int i = 0; i < gDevices; i++) {
+		getDsAddrByIndex(gDs, gDsAddrs[i], i);
+	}
+}
+
+int
+countDsDevices(OneWire myDs)
+{
+	byte addr[8];
+	int deviceCount = 0;
+	/* uint16_t present = */
+
+	myDs.reset();
+	//Serial.print("OneWire presence on 6: ");
+	//Serial.println(present);
+	myDs.reset_search();
+	while (myDs.search(addr)) {
+		if (checkDsCrc(myDs, addr)) {
+			deviceCount++;
+		}
+	}
+	return deviceCount;
+}
+
+bool
+checkDsCrc(OneWire myDs, byte addr[8])
+{
+	return (OneWire::crc8(addr, 7) == addr[7]);
+}
+
+bool
+getDsAddrByIndex(OneWire myDs, byte firstadd[], int index)
+{
+	byte i;
+	//	byte present = 0;
+	byte addr[8];
+	int count = 0;
+
+	myDs.reset();
+	myDs.reset_search();
+	Serial.print(F("OneWire @ "));
+	Serial.println(index);
+
+	while (myDs.search(addr) && (count <= index)) {
+		if ((count == index) && checkDsCrc(myDs, addr))
+		{
+			Serial.print(F("Found addr: "));
+			Serial.print(F("0x"));
+			for (i = 0; i < 8; i++) {
+				firstadd[i] = addr[i];
+				if (addr[i] < 16) {
+					Serial.print(F("0"));
+				}
+				Serial.print(addr[i], HEX);
+				//if (i < 7) {
+				//	Serial.print(F(", "));
+				//}
+			}
+			Serial.println();
+			return true;
+		}
+		count++;
+	}
+	return false;
+}
+
+// There are 4 DS12B80 sensors connected
+// Three are in a linear probe that will go in the hive, at 2, 6 and 10 inches spacing in a 12 inch tube
+// There is one more mounted in the station near the BME280 sensor
+void
+measureDs18B20(void) {
+	for (int i = 0; i < gDevices; i++) {
+		float fpTemp = getDsTempeature(gDs, gDsAddrs[i]);
+		int intTemp = (int)(fpTemp + 0.5);
+#if MY_DEBUG 
+		Serial.print(fpTemp);
+		Serial.print(F(" ==> "));
+		Serial.println(intTemp);
+#endif	// MY_DEBUG
+#if 0
+		switch (gDsAddrs[i][7]) {
+		case 0x67: // Blue
+			gTempHive2Inch = intTemp;
+			Serial.print(F("2in temp: "));
+			break;
+		case 0x36: //yellow
+			gTempHive6Inch = intTemp;
+			Serial.print(F("6in temp: "));
+			break;
+		case 0xC0: // red
+			gTempBox = intTemp;
+			Serial.print(F("box temp: "));
+			break;
+		case 0xB1: // blue
+			gTempHive10Inch = intTemp;
+			Serial.print(F("10in temp: "));
+			break;
+}
+#else // save 2 bytes over switch with cascading if's - ha ha
+		if (0x67 == gDsAddrs[i][7]) {
+			gTempHive2Inch = intTemp;
+#if MY_DEBUG
+			Serial.print(F("2in temp: "));
+#endif
+		}
+		else if (0x36 == gDsAddrs[i][7]) {
+			gTempHive6Inch = intTemp;
+#if MY_DEBUG
+			Serial.print(F("6in temp: "));
+#endif
+		}
+		else if (0xC0 == gDsAddrs[i][7]) {
+			gTempBox = intTemp;
+#if MY_DEBUG
+			Serial.print(F("box temp: "));
+#endif
+		}
+		else if (0xB1 == gDsAddrs[i][7]) {
+			gTempHive10Inch = intTemp;
+#if MY_DEBUG
+			Serial.print(F("10in temp: "));
+#endif
+		}
+#endif
+#if MY_DEBUG
+		Serial.println(intTemp);
+#endif
+	}
+}
+
+// Testing shows 10-bit resolution give more than adequate precision and accuracy
+float
+getDsTempeature(OneWire myDs, byte addr[8])
+{
+	byte data[12];
+	float celsius;
+	wdt_reset();
+
+	// Get byte for desired resolution
+	byte resbyte = 0x3F; // for 10-byte resolution
+
+	// Set configuration
+	myDs.reset();
+	myDs.select(addr);
+	myDs.write(0x4E);         // Write scratchpad
+	myDs.write(0);            // TL
+	myDs.write(0);            // TH
+	myDs.write(resbyte);      // Configuration Register
+	myDs.write(0x48);         // Copy Scratchpad
+	myDs.reset();
+	myDs.select(addr);
+
+	//long starttime = millis();
+	myDs.write(0x44, 1);         // start conversion
+	while (!myDs.read()) {
+		// do nothing
+	}
+#if MY_DEBUG
+	Serial.print(F("Conversion took: "));
+	Serial.print(millis() - starttime);
+	Serial.println(F(" ms"));
+#endif // MY_DEBUG
+
+	//delay(1000);     // maybe 750ms is enough, maybe not
+	// we might do a ds.depower() here, but the reset will take care of it.
+	wdt_reset();
+	myDs.reset();
+	myDs.select(addr);
+	myDs.write(0xBE);         // Read Scratchpad
+
+
+#if MY_DEBUG
+	Serial.print(F("Raw Data: "));
+#endif // MY_DEBUG
+	for (int i = 0; i < 9; i++) {           // we need 9 bytes
+		data[i] = myDs.read();
+#if MY_DEBUG
+		Serial.print(data[i], HEX);
+		Serial.print(F(" "));
+#endif // MY_DEBUG
+	}
+#if MY_DEBUG
+	Serial.println();
+#endif // MY_DEBUG
+
+	// convert the data to actual temperature
+	unsigned int raw = (data[1] << 8) | data[0];
+	celsius = (float)raw / 16.0;
+	//Serial.print("Temp (C): ");
+	return celsius;
+	}
+
+void
+printFreeRam(void)
+{
+	Serial.print(F("Free:"));
+	Serial.println(calculateFreeRam());
+}
+
