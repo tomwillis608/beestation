@@ -15,5 +15,8 @@ To Do:
  * Add audio level and pitch sensors
  * Add weight sensors
 
+Pondering
+ * Add camera facing hive entrance 
+
 -Tom Willis
 Hacking Arduino for bees
