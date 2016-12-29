@@ -105,7 +105,7 @@ int gTemp3Hive10Inch = 0; //11
 #endif
 
 // Serial Number of this beestation 
-char gSerialNumber[20]; // read from Maxim DS2401 on pin 9
+char gSerialNumber[3]; // read from Maxim DS2401 on pin 9, use rightmost word
 
 const int gRedLED = 8; // LED on pin
 const int gYellowLED = 7; // LED on pin 7
@@ -123,7 +123,7 @@ void setup(void)
 
 	// Start Serial
 	Serial.begin(115200); // 9600
-	Serial.print(F("\n\nInitializing Bee Station #"));
+	Serial.print(F("\n\nInitializing BeeStation #"));
 
 	// DS2401
 	readSerialNumber(); // Populate gSerialNumber
@@ -399,15 +399,17 @@ readSerialNumber(void)
 		ds2401.write(0x33);  //Send READ data command to 1-Wire bus
 		for (i = 0; i <= 7; i++) {
 			data = ds2401.read();
-			gSerialNumber[j++] = hex[data / 16];
-			gSerialNumber[j++] = hex[data % 16];
+			if (i == 7) {
+				gSerialNumber[j++] = hex[data / 16];
+				gSerialNumber[j++] = hex[data % 16];
+			}
 		}
 		gSerialNumber[j] = 0;
 		Serial.println(gSerialNumber);
 	}
 	else { //Nothing is connected in the bus 
   //Serial.println(F("No 1-Wire Device detected on bus"));
-		strlcpy(gSerialNumber, hex, 16);
+		strlcpy(gSerialNumber, "00", 3);
 	}
 	//Serial.print(F("Serial Number for this kit: "));
 	return present;
@@ -598,19 +600,19 @@ getDsAddrByIndex(OneWire myDs, byte firstadd[], int index)
 	while (myDs.search(addr) && (count <= index)) {
 		if ((count == index) && checkDsCrc(myDs, addr))
 		{
-			Serial.print(F("Found addr: "));
-			Serial.print(F("0x"));
+			//Serial.print(F("Found addr: "));
+			//Serial.print(F("0x"));
 			for (i = 0; i < 8; i++) {
 				firstadd[i] = addr[i];
-				if (addr[i] < 16) {
-					Serial.print(F("0"));
-				}
-				Serial.print(addr[i], HEX);
+				//if (addr[i] < 16) {
+				//	//Serial.print(F("0"));
+				//}
+				//Serial.print(addr[i], HEX);
 				//if (i < 7) {
 				//	Serial.print(F(", "));
 				//}
 			}
-			Serial.println();
+			//Serial.println();
 			return true;
 		}
 		count++;
