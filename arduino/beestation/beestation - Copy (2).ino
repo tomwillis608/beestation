@@ -28,7 +28,7 @@
 #define USE_DS18B20 1
 #define USE_BMP 0
 #define USE_BME 1
-#define MY_DEBUG 0
+#define MY_DEBUG 00
 
 // Include required libraries
 #include <Adafruit_CC3000.h> // wifi library
@@ -88,7 +88,7 @@ unsigned long gCycles = 0;
 // Variables to be exposed 
 int gHumidity = 0;
 int gPressure = 0;
-int gTemperature = 0;
+int gTemperature = 0; //1
 // To do: use array for DS18B20 temperatures and simplify HTTP printout code
 int gDsTemps[DS_COUNT];
 #if 0

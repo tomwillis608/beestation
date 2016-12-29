@@ -105,7 +105,7 @@ int gTemp3Hive10Inch = 0; //11
 #endif
 
 // Serial Number of this beestation 
-char gSerialNumber[3]; // read from Maxim DS2401 on pin 9, use rightmost word
+char gSerialNumber[20]; // read from Maxim DS2401 on pin 9
 
 const int gRedLED = 8; // LED on pin
 const int gYellowLED = 7; // LED on pin 7
@@ -123,7 +123,7 @@ void setup(void)
 
 	// Start Serial
 	Serial.begin(115200); // 9600
-	Serial.print(F("\n\nInitializing BeeStation #"));
+	Serial.print(F("\n\nInitializing Bee Station #"));
 
 	// DS2401
 	readSerialNumber(); // Populate gSerialNumber
@@ -399,17 +399,15 @@ readSerialNumber(void)
 		ds2401.write(0x33);  //Send READ data command to 1-Wire bus
 		for (i = 0; i <= 7; i++) {
 			data = ds2401.read();
-			if (i == 7) {
-				gSerialNumber[j++] = hex[data / 16];
-				gSerialNumber[j++] = hex[data % 16];
-			}
+			gSerialNumber[j++] = hex[data / 16];
+			gSerialNumber[j++] = hex[data % 16];
 		}
 		gSerialNumber[j] = 0;
 		Serial.println(gSerialNumber);
 	}
 	else { //Nothing is connected in the bus 
   //Serial.println(F("No 1-Wire Device detected on bus"));
-		strlcpy(gSerialNumber, "00", 3);
+		strlcpy(gSerialNumber, hex, 16);
 	}
 	//Serial.print(F("Serial Number for this kit: "));
 	return present;
@@ -600,19 +598,19 @@ getDsAddrByIndex(OneWire myDs, byte firstadd[], int index)
 	while (myDs.search(addr) && (count <= index)) {
 		if ((count == index) && checkDsCrc(myDs, addr))
 		{
-			//Serial.print(F("Found addr: "));
-			//Serial.print(F("0x"));
+			Serial.print(F("Found addr: "));
+			Serial.print(F("0x"));
 			for (i = 0; i < 8; i++) {
 				firstadd[i] = addr[i];
-				//if (addr[i] < 16) {
-				//	//Serial.print(F("0"));
-				//}
-				//Serial.print(addr[i], HEX);
+				if (addr[i] < 16) {
+					Serial.print(F("0"));
+				}
+				Serial.print(addr[i], HEX);
 				//if (i < 7) {
 				//	Serial.print(F(", "));
 				//}
 			}
-			//Serial.println();
+			Serial.println();
 			return true;
 		}
 		count++;
@@ -628,15 +626,11 @@ getDsAddrByIndex(OneWire myDs, byte firstadd[], int index)
 void
 measureDs18B20(void) {
 	for (int i = 0; i < gDevices; i++) {
-#if 0
 		float fpTemp = getDsTempeature(gDs, gDsAddrs[i]);
 		int intTemp = (int)(fpTemp + 0.5);
-#else
-		int intTemp = getDsTempeature(gDs, gDsAddrs[i]);
-#endif
 #if MY_DEBUG 
-		//Serial.print(fpTemp);
-		//Serial.print(F(" ==> "));
+		Serial.print(fpTemp);
+		Serial.print(F(" ==> "));
 		Serial.println(intTemp);
 #endif	// MY_DEBUG
 #if 0
@@ -658,7 +652,7 @@ measureDs18B20(void) {
 			Serial.print(F("10in temp: "));
 			break;
 }
-#else // save some bytes over switch with cascading if's - ha ha
+#else // save 2 bytes over switch with cascading if's - ha ha
 		if (0x67 == gDsAddrs[i][7]) {
 			gDsTemps[1] = intTemp;
 #if MY_DEBUG
@@ -727,12 +721,11 @@ measureDs18B20(void) {
 }
 
 // Testing shows 10-bit resolution give more than adequate precision and accuracy
-/*float*/
-int
+float
 getDsTempeature(OneWire myDs, byte addr[8])
 {
 	byte data[12];
-	//int celsius;
+	float celsius;
 	wdt_reset();
 
 	// Get byte for desired resolution
@@ -754,7 +747,7 @@ getDsTempeature(OneWire myDs, byte addr[8])
 	while (!myDs.read()) {
 		// do nothing
 	}
-#if MY_DEBUG1
+#if MY_DEBUG
 	Serial.print(F("Conversion took: "));
 	Serial.print(millis() - starttime);
 	Serial.println(F(" ms"));
@@ -783,24 +776,10 @@ getDsTempeature(OneWire myDs, byte addr[8])
 #endif // MY_DEBUG
 
 	// convert the data to actual temperature
-	/*unsigned int raw = (data[1] << 8) | data[0]; */
-	int raw = (data[1] << 8) + data[0];
-	// What about negative temps? 
-	// look for sign bit per http://stackoverflow.com/questions/30646783/arduino-temperature-sensor-negative-temperatures
-	int signBit = raw & 0x8000;  // test most sig bit
-	if (signBit) { // negative
-		raw = ((raw ^ 0xffff) + 1) * (-1); // 2's comp
-	}
-	int celsius_100 = (6 * raw) + raw / 4;    // multiply by (100 * 0.0625) or 6.25
-
-	int whole = celsius_100 / 100;  // separate off the whole and fractional portions
-	//int fract = celsius_100 % 100;
-	//
-
-	//celsius = (float)raw / 16.0;
-	//celsius = whole;
+	unsigned int raw = (data[1] << 8) | data[0];
+	celsius = (float)raw / 16.0;
 	//Serial.print("Temp (C): ");
-	return whole /* celsius*/;
+	return celsius;
 	}
 
 void

@@ -14,53 +14,38 @@
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
     <Filter Include="_core">
-      <UniqueIdentifier>{143c4c44-467a-4f7d-a917-01c2f74716da}</UniqueIdentifier>
+      <UniqueIdentifier>{1b3329f5-eb97-4732-b2c7-15df1dfd4c11}</UniqueIdentifier>
     </Filter>
     <Filter Include="_libraries">
-      <UniqueIdentifier>{45c6349d-642e-4bac-9834-b4e03b5b7801}</UniqueIdentifier>
+      <UniqueIdentifier>{104cd1b0-b342-4a88-93eb-7abeeed1e968}</UniqueIdentifier>
     </Filter>
     <Filter Include="_libraries\Adafruit_BME280_Library-master">
-      <UniqueIdentifier>{7248ae91-27b7-49d2-9b31-fe6e637705e9}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="_libraries\Adafruit_BMP085_Unified-master">
-      <UniqueIdentifier>{6abab0bf-aa13-4b9f-89c7-d7930d9e2a58}</UniqueIdentifier>
+      <UniqueIdentifier>{38c726f0-4b44-4086-a7fd-d85e3defc398}</UniqueIdentifier>
     </Filter>
     <Filter Include="_libraries\Adafruit_CC3000_Library-master">
-      <UniqueIdentifier>{a4f91e74-6019-44f2-b2fa-b1b9f4231708}</UniqueIdentifier>
+      <UniqueIdentifier>{61038a35-505e-42b4-b4f7-86c1c2c2515e}</UniqueIdentifier>
     </Filter>
     <Filter Include="_libraries\Adafruit_CC3000_Library-master\utility">
-      <UniqueIdentifier>{7164bc29-3aca-4def-8dde-a23e293325c8}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="_libraries\Adafruit_Sensor-master">
-      <UniqueIdentifier>{8e221db9-4e15-4aa4-8373-0fec6daeb59d}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="_libraries\DHT-sensor-library-master">
-      <UniqueIdentifier>{40cd5192-2304-44c4-ae8f-014cd8db7c4c}</UniqueIdentifier>
+      <UniqueIdentifier>{d8a38396-f097-4eab-9e16-77854648d888}</UniqueIdentifier>
     </Filter>
     <Filter Include="_libraries\MyCommon">
-      <UniqueIdentifier>{1fb72c30-fdb4-412d-9da7-b894908a68d8}</UniqueIdentifier>
+      <UniqueIdentifier>{e8e1c879-3b65-4ebb-b6ff-348fd7c673f5}</UniqueIdentifier>
     </Filter>
     <Filter Include="_libraries\OneWire">
-      <UniqueIdentifier>{4f473398-9205-430b-ab22-704cf0275d0a}</UniqueIdentifier>
+      <UniqueIdentifier>{d32c982d-0f97-48c6-aee4-407b56ee40ea}</UniqueIdentifier>
     </Filter>
     <Filter Include="_libraries\SPI">
-      <UniqueIdentifier>{8a16f64b-abe2-4fb4-9daf-5118bb25c6b7}</UniqueIdentifier>
+      <UniqueIdentifier>{9d207aa2-9202-478a-82b5-a27a3a6bf630}</UniqueIdentifier>
     </Filter>
     <Filter Include="_libraries\SPI\src">
-      <UniqueIdentifier>{46b6adb9-b82f-4d69-b9bc-b6d163ac71f6}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="_libraries\Wire">
-      <UniqueIdentifier>{b01e4ce2-4277-493e-a1bd-fb5c91052385}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="_libraries\Wire\src">
-      <UniqueIdentifier>{45b5845b-4ea2-4b41-80f3-b2a5db89848e}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="_libraries\Wire\src\utility">
-      <UniqueIdentifier>{bf886f61-56d9-4e8a-abdc-b2c250277cf5}</UniqueIdentifier>
+      <UniqueIdentifier>{87be6f17-a991-4ce0-b302-5750065f141a}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="beestation.ino" />
+    <None Include="..\..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\cores\arduino\wiring_pulse.S">
+      <Filter>_core</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__vm\.beestation.vsarduino.h">
@@ -72,5 +57,241 @@
     <ClInclude Include="..\..\..\..\Documents\Arduino\libraries\MyCommon\mynetwork.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\cores\arduino\Arduino.h">
+      <Filter>_core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\cores\arduino\binary.h">
+      <Filter>_core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\cores\arduino\Client.h">
+      <Filter>_core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\cores\arduino\HardwareSerial.h">
+      <Filter>_core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\cores\arduino\HardwareSerial_private.h">
+      <Filter>_core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\cores\arduino\IPAddress.h">
+      <Filter>_core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\cores\arduino\new.h">
+      <Filter>_core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\cores\arduino\PluggableUSB.h">
+      <Filter>_core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\cores\arduino\Print.h">
+      <Filter>_core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\cores\arduino\Printable.h">
+      <Filter>_core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\cores\arduino\Server.h">
+      <Filter>_core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\cores\arduino\Stream.h">
+      <Filter>_core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\cores\arduino\Udp.h">
+      <Filter>_core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\cores\arduino\USBAPI.h">
+      <Filter>_core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\cores\arduino\USBCore.h">
+      <Filter>_core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\cores\arduino\USBDesc.h">
+      <Filter>_core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\cores\arduino\WCharacter.h">
+      <Filter>_core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\cores\arduino\wiring_private.h">
+      <Filter>_core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\cores\arduino\WString.h">
+      <Filter>_core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\variants\standard\pins_arduino.h">
+      <Filter>_core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Documents\Arduino\libraries\Adafruit_BME280_Library-master\Adafruit_BME280.h">
+      <Filter>_libraries\Adafruit_BME280_Library-master</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Documents\Arduino\libraries\Adafruit_CC3000_Library-master\Adafruit_CC3000.h">
+      <Filter>_libraries\Adafruit_CC3000_Library-master</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Documents\Arduino\libraries\Adafruit_CC3000_Library-master\Adafruit_CC3000_Server.h">
+      <Filter>_libraries\Adafruit_CC3000_Library-master</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Documents\Arduino\libraries\Adafruit_CC3000_Library-master\ccspi.h">
+      <Filter>_libraries\Adafruit_CC3000_Library-master</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Documents\Arduino\libraries\Adafruit_CC3000_Library-master\utility\cc3000_common.h">
+      <Filter>_libraries\Adafruit_CC3000_Library-master\utility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Documents\Arduino\libraries\Adafruit_CC3000_Library-master\utility\data_types.h">
+      <Filter>_libraries\Adafruit_CC3000_Library-master\utility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Documents\Arduino\libraries\Adafruit_CC3000_Library-master\utility\debug.h">
+      <Filter>_libraries\Adafruit_CC3000_Library-master\utility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Documents\Arduino\libraries\Adafruit_CC3000_Library-master\utility\error_codes.h">
+      <Filter>_libraries\Adafruit_CC3000_Library-master\utility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Documents\Arduino\libraries\Adafruit_CC3000_Library-master\utility\evnt_handler.h">
+      <Filter>_libraries\Adafruit_CC3000_Library-master\utility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Documents\Arduino\libraries\Adafruit_CC3000_Library-master\utility\hci.h">
+      <Filter>_libraries\Adafruit_CC3000_Library-master\utility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Documents\Arduino\libraries\Adafruit_CC3000_Library-master\utility\host_driver_version.h">
+      <Filter>_libraries\Adafruit_CC3000_Library-master\utility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Documents\Arduino\libraries\Adafruit_CC3000_Library-master\utility\netapp.h">
+      <Filter>_libraries\Adafruit_CC3000_Library-master\utility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Documents\Arduino\libraries\Adafruit_CC3000_Library-master\utility\nvmem.h">
+      <Filter>_libraries\Adafruit_CC3000_Library-master\utility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Documents\Arduino\libraries\Adafruit_CC3000_Library-master\utility\security.h">
+      <Filter>_libraries\Adafruit_CC3000_Library-master\utility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Documents\Arduino\libraries\Adafruit_CC3000_Library-master\utility\socket.h">
+      <Filter>_libraries\Adafruit_CC3000_Library-master\utility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Documents\Arduino\libraries\Adafruit_CC3000_Library-master\utility\wlan.h">
+      <Filter>_libraries\Adafruit_CC3000_Library-master\utility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Documents\Arduino\libraries\MyCommon\mynetwork.h">
+      <Filter>_libraries\MyCommon</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Documents\Arduino\libraries\OneWire\OneWire.h">
+      <Filter>_libraries\OneWire</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\libraries\SPI\src\SPI.h">
+      <Filter>_libraries\SPI\src</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\cores\arduino\abi.cpp">
+      <Filter>_core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\cores\arduino\CDC.cpp">
+      <Filter>_core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\cores\arduino\HardwareSerial.cpp">
+      <Filter>_core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\cores\arduino\HardwareSerial0.cpp">
+      <Filter>_core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\cores\arduino\HardwareSerial1.cpp">
+      <Filter>_core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\cores\arduino\HardwareSerial2.cpp">
+      <Filter>_core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\cores\arduino\HardwareSerial3.cpp">
+      <Filter>_core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\cores\arduino\hooks.c">
+      <Filter>_core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\cores\arduino\IPAddress.cpp">
+      <Filter>_core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\cores\arduino\main.cpp">
+      <Filter>_core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\cores\arduino\new.cpp">
+      <Filter>_core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\cores\arduino\PluggableUSB.cpp">
+      <Filter>_core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\cores\arduino\Print.cpp">
+      <Filter>_core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\cores\arduino\Stream.cpp">
+      <Filter>_core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\cores\arduino\Tone.cpp">
+      <Filter>_core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\cores\arduino\USBCore.cpp">
+      <Filter>_core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\cores\arduino\WInterrupts.c">
+      <Filter>_core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\cores\arduino\wiring.c">
+      <Filter>_core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\cores\arduino\wiring_analog.c">
+      <Filter>_core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\cores\arduino\wiring_digital.c">
+      <Filter>_core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\cores\arduino\wiring_pulse.c">
+      <Filter>_core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\cores\arduino\wiring_shift.c">
+      <Filter>_core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\cores\arduino\WMath.cpp">
+      <Filter>_core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\cores\arduino\WString.cpp">
+      <Filter>_core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Documents\Arduino\libraries\Adafruit_BME280_Library-master\Adafruit_BME280.cpp">
+      <Filter>_libraries\Adafruit_BME280_Library-master</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Documents\Arduino\libraries\Adafruit_CC3000_Library-master\Adafruit_CC3000.cpp">
+      <Filter>_libraries\Adafruit_CC3000_Library-master</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Documents\Arduino\libraries\Adafruit_CC3000_Library-master\Adafruit_CC3000_Server.cpp">
+      <Filter>_libraries\Adafruit_CC3000_Library-master</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Documents\Arduino\libraries\Adafruit_CC3000_Library-master\ccspi.cpp">
+      <Filter>_libraries\Adafruit_CC3000_Library-master</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Documents\Arduino\libraries\Adafruit_CC3000_Library-master\utility\cc3000_common.cpp">
+      <Filter>_libraries\Adafruit_CC3000_Library-master\utility</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Documents\Arduino\libraries\Adafruit_CC3000_Library-master\utility\debug.cpp">
+      <Filter>_libraries\Adafruit_CC3000_Library-master\utility</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Documents\Arduino\libraries\Adafruit_CC3000_Library-master\utility\evnt_handler.cpp">
+      <Filter>_libraries\Adafruit_CC3000_Library-master\utility</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Documents\Arduino\libraries\Adafruit_CC3000_Library-master\utility\hci.cpp">
+      <Filter>_libraries\Adafruit_CC3000_Library-master\utility</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Documents\Arduino\libraries\Adafruit_CC3000_Library-master\utility\netapp.cpp">
+      <Filter>_libraries\Adafruit_CC3000_Library-master\utility</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Documents\Arduino\libraries\Adafruit_CC3000_Library-master\utility\nvmem.cpp">
+      <Filter>_libraries\Adafruit_CC3000_Library-master\utility</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Documents\Arduino\libraries\Adafruit_CC3000_Library-master\utility\security.cpp">
+      <Filter>_libraries\Adafruit_CC3000_Library-master\utility</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Documents\Arduino\libraries\Adafruit_CC3000_Library-master\utility\socket.cpp">
+      <Filter>_libraries\Adafruit_CC3000_Library-master\utility</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Documents\Arduino\libraries\Adafruit_CC3000_Library-master\utility\wlan.cpp">
+      <Filter>_libraries\Adafruit_CC3000_Library-master\utility</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Documents\Arduino\libraries\OneWire\OneWire.cpp">
+      <Filter>_libraries\OneWire</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\..\..\Program Files (x86)\Arduino\hardware\arduino\avr\libraries\SPI\src\SPI.cpp">
+      <Filter>_libraries\SPI\src</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
