@@ -73,7 +73,8 @@ Adafruit_BME280 gBme280; // I2C
 #if USE_DS18B20
 OneWire gDs(DS18B20PIN);
 int gDevices;
-byte gDsAddrs[10][8];
+#define DS_COUNT 10
+byte gDsAddrs[DS_COUNT][8];
 #endif // USE_DS18B20
 
 // PHP server on backend
@@ -89,16 +90,19 @@ int gHumidity = 0;
 int gPressure = 0;
 int gTemperature = 0;
 // To do: use array for DS18B20 temperatures and simplify HTTP printout code
-int gTempHive2Inch = 0;
-int gTempHive6Inch = 0;
-int gTempHive10Inch = 0;
-int gTempBox = 0;
-int gTemp2Hive2Inch = 0;
-int gTemp2Hive6Inch = 0;
-int gTemp2Hive10Inch = 0;
-int gTemp3Hive2Inch = 0;
-int gTemp3Hive6Inch = 0;
-int gTemp3Hive10Inch = 0;
+int gDsTemps[DS_COUNT];
+#if 0
+int gTempHive2Inch = 0; //3
+int gTempHive6Inch = 0; //4
+int gTempHive10Inch = 0; //5
+int gTempBox = 0; //2
+int gTemp2Hive2Inch = 0; //6
+int gTemp2Hive6Inch = 0; //7 
+int gTemp2Hive10Inch = 0; //8 
+int gTemp3Hive2Inch = 0; //9
+int gTemp3Hive6Inch = 0; //10
+int gTemp3Hive10Inch = 0; //11
+#endif
 
 // Serial Number of this beestation 
 char gSerialNumber[20]; // read from Maxim DS2401 on pin 9
@@ -182,10 +186,11 @@ void loop(void)
 #if USE_CC3300
 	Serial.println(F("Connecting to web server"));
 	wdt_reset();
-	postReadingsToWeb(gIp, gTemperature, gHumidity, gPressure, gTempBox, 
+	postReadingsToWeb(gIp); /*, gTemperature, gHumidity, gPressure); */
+						   /* , gTempBox,
 		gTempHive2Inch, gTempHive6Inch, gTempHive10Inch,
 		gTemp2Hive2Inch, gTemp2Hive6Inch, gTemp2Hive10Inch,
-		gTemp3Hive2Inch, gTemp3Hive6Inch, gTemp3Hive10Inch);
+		gTemp3Hive2Inch, gTemp3Hive6Inch, gTemp3Hive10Inch);*/
 	wdt_reset();
 	if (0 == (gCycles % 100)) {
 		char message[64];
@@ -237,8 +242,9 @@ delayBetweenMeasurements(int delaySeconds)
 #define OUTSTRSIZE 256
 // send sensor measurements to the webserver
 void
-postReadingsToWeb(uint32_t ip, int temperature, int humidity, int pressure,
-	int tBox, int t2In, int t6In, int t10In, int t2In2, int t6In2, int t10In2, int t2In3, int t6In3, int t10In3)
+postReadingsToWeb(uint32_t ip/*, int temperature, int humidity, int pressure //Save the stack space since using globals */
+							 /*,
+	int tBox, int t2In, int t6In, int t10In, int t2In2, int t6In2, int t10In2, int t2In3, int t6In3, int t10In3*/)
 {
 	// Build the URL string
 	char outStr[OUTSTRSIZE];
@@ -249,17 +255,26 @@ postReadingsToWeb(uint32_t ip, int temperature, int humidity, int pressure,
 	strlcat(outStr, (gSerialNumber), OUTSTRSIZE);
 	strlcat(outStr, ("&"), OUTSTRSIZE);
 	strlcat(outStr, ("t1="), OUTSTRSIZE);
-	itoa(temperature, itoaBuf, 10);
+	itoa(gTemperature, itoaBuf, 10);
 	strlcat(outStr, (itoaBuf), OUTSTRSIZE);
 	strlcat(outStr, ("&"), OUTSTRSIZE);
 	strlcat(outStr, ("hu="), OUTSTRSIZE);
-	itoa(humidity, itoaBuf, 10);
+	itoa(gHumidity, itoaBuf, 10);
 	strlcat(outStr, (itoaBuf), OUTSTRSIZE);
 	strlcat(outStr, ("&"), OUTSTRSIZE);
 	strlcat(outStr, ("pr="), OUTSTRSIZE);
-	itoa(pressure, itoaBuf, 10);
+	itoa(gPressure, itoaBuf, 10);
 	strlcat(outStr, (itoaBuf), OUTSTRSIZE);
-	/**/
+	/* Write DS18B20 results */
+	for (int j = 0; j < DS_COUNT; j++) {
+		strlcat(outStr, ("&t"), OUTSTRSIZE);
+		itoa((j+2), itoaBuf, 10);
+		strlcat(outStr, (itoaBuf), OUTSTRSIZE);
+		strlcat(outStr, ("="), OUTSTRSIZE);
+		itoa(gDsTemps[j], itoaBuf, 10);
+		strlcat(outStr, (itoaBuf), OUTSTRSIZE);
+	}
+#if 0
 	strlcat(outStr, ("&"), OUTSTRSIZE);
 	strlcat(outStr, ("t2="), OUTSTRSIZE);
 	itoa(tBox, itoaBuf, 10);
@@ -300,7 +315,8 @@ postReadingsToWeb(uint32_t ip, int temperature, int humidity, int pressure,
 	strlcat(outStr, ("t11="), OUTSTRSIZE);
 	itoa(t10In3, itoaBuf, 10);
 	strlcat(outStr, (itoaBuf), OUTSTRSIZE);	
-	//Serial.println(outStr);
+#endif
+    Serial.println(outStr);
 	postToWeb(ip, outStr);
 }
 
@@ -484,7 +500,7 @@ checkAndResetWifi(void)
 		gTimeNow = millis();
 		//prints time since program started
 		Serial.println(gTimeNow);
-		Serial.println(F("Lost WiFi. Rebooting CC3300"));
+		Serial.println(F("Lost WiFi. Rebooting CC3000"));
 		gCc3000.disconnect();
 		gCc3000.stop();
 		/*
@@ -576,8 +592,8 @@ getDsAddrByIndex(OneWire myDs, byte firstadd[], int index)
 
 	myDs.reset();
 	myDs.reset_search();
-	Serial.print(F("OneWire @ "));
-	Serial.println(index);
+	//Serial.print(F("OneWire @ "));
+	//Serial.println(index);
 
 	while (myDs.search(addr) && (count <= index)) {
 		if ((count == index) && checkDsCrc(myDs, addr))
@@ -605,7 +621,7 @@ getDsAddrByIndex(OneWire myDs, byte firstadd[], int index)
 // There are 10 DS12B80 sensors connected
 // Three are in a linear probe that will go in the hive, above the first brood box, at 2, 6 and 10 inches spacing in a 12 inch tube
 // Three more are in another linear probe that will go in the hive, above the second brood box, at 2, 6 and 10 inches spacing in a 12 inch tube
-// Three more are in ywt another linear probe that will go in the hive, aboce the first honey super, at 2, 6 and 10 inches spacing in a 12 inch tube
+// Three more are in yet another linear probe that will go in the hive, aboce the first honey super, at 2, 6 and 10 inches spacing in a 12 inch tube
 // There is one more mounted in the station near the BME280 sensor
 void
 measureDs18B20(void) {
@@ -638,61 +654,61 @@ measureDs18B20(void) {
 }
 #else // save 2 bytes over switch with cascading if's - ha ha
 		if (0x67 == gDsAddrs[i][7]) {
-			gTempHive2Inch = intTemp;
+			gDsTemps[1] = intTemp;
 #if MY_DEBUG
 			Serial.print(F("2in temp: "));
 #endif
 		}
 		else if (0x36 == gDsAddrs[i][7]) {
-			gTempHive6Inch = intTemp;
+			gDsTemps[2] = intTemp;
 #if MY_DEBUG
 			Serial.print(F("6in temp: "));
 #endif
 		}
 		else if (0xC0 == gDsAddrs[i][7]) {
-			gTempBox = intTemp;
+			gDsTemps[0] = intTemp;
 #if MY_DEBUG
 			Serial.print(F("box temp: "));
 #endif
 		}
 		else if (0xB1 == gDsAddrs[i][7]) {
-			gTempHive10Inch = intTemp;
+			gDsTemps[3] = intTemp;
 #if MY_DEBUG
 			Serial.print(F("10in temp: "));
 #endif
 		}
 		else if (0xEC == gDsAddrs[i][7]) {
-			gTemp2Hive2Inch = intTemp;
+			gDsTemps[4] = intTemp;
 #if MY_DEBUG
 			Serial.print(F("2in temp2: "));
 #endif
 		}
 		else if (0xDD == gDsAddrs[i][7]) {
-			gTemp2Hive6Inch = intTemp;
+			gDsTemps[5] = intTemp;
 #if MY_DEBUG
 			Serial.print(F("6in temp2: "));
 #endif
 		}
 		else if (0x4D == gDsAddrs[i][7]) {
-			gTemp2Hive10Inch = intTemp;
+			gDsTemps[6] = intTemp;
 #if MY_DEBUG
 			Serial.print(F("10in temp2: "));
 #endif
 		}
 		else if (0x6F == gDsAddrs[i][7]) {
-			gTemp3Hive2Inch = intTemp;
+			gDsTemps[7] = intTemp;
 #if MY_DEBUG
 			Serial.print(F("2in temp2: "));
 #endif
 		}
 		else if (0x52 == gDsAddrs[i][7]) {
-			gTemp3Hive6Inch = intTemp;
+			gDsTemps[8] = intTemp;
 #if MY_DEBUG
 			Serial.print(F("6in temp2: "));
 #endif
 		}
 		else if (0xAB == gDsAddrs[i][7]) {
-			gTemp3Hive10Inch = intTemp;
+			gDsTemps[9] = intTemp;
 #if MY_DEBUG
 			Serial.print(F("10in temp2: "));
 #endif
