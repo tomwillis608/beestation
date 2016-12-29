@@ -41,6 +41,16 @@
             <td class="table_titles">Temperature (C)</td>
             <td class="table_titles">Humidity (Relative)</td>
             <td class="table_titles">Pressure (hPa)</td>
+            <td class="table_titles">Temperature Box (C)</td>
+            <td class="table_titles">Temperature 1 2in (C)</td>
+            <td class="table_titles">Temperature 1 6in (C)</td>
+            <td class="table_titles">Temperature 1 10in (C)</td>
+            <td class="table_titles">Temperature 2 2in (C)</td>
+            <td class="table_titles">Temperature 2 6in (C)</td>
+            <td class="table_titles">Temperature 2 10in (C)</td>
+            <td class="table_titles">Temperature 3 2in (C)</td>
+            <td class="table_titles">Temperature 3 6in (C)</td>
+            <td class="table_titles">Temperature 3 10in (C)</td>
         </tr>
 
 <?php
@@ -84,6 +94,16 @@
 		echo '  <td'.$css_class.'>'.$row["celsius"].'</td>';
 		echo '  <td'.$css_class.'>'.$row["humidity"].'</td>';
 		echo '  <td'.$css_class.'>'.$row["pressure"].'</td>';
+		echo '  <td'.$css_class.'>'.$row["box_celsius"].'</td>';
+		echo '  <td'.$css_class.'>'.$row["temp_2inch"].'</td>';
+		echo '  <td'.$css_class.'>'.$row["temp_6inch"].'</td>';
+		echo '  <td'.$css_class.'>'.$row["temp_10inch"].'</td>';
+		echo '  <td'.$css_class.'>'.$row["2temp_2inch"].'</td>';
+		echo '  <td'.$css_class.'>'.$row["2temp_6inch"].'</td>';
+		echo '  <td'.$css_class.'>'.$row["2temp_10inch"].'</td>';
+		echo '  <td'.$css_class.'>'.$row["3temp_2inch"].'</td>';
+		echo '  <td'.$css_class.'>'.$row["3temp_6inch"].'</td>';
+		echo '  <td'.$css_class.'>'.$row["3temp_10inch"].'</td>';
 		echo '</tr>';
     }
     if ($left_record < $record_limit ) {
@@ -107,3 +127,4 @@
     // close connection 
     mysqli_close($link);
 ?>
+	
