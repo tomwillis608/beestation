@@ -26,7 +26,6 @@
 #define USE_CC3300 01
 #define USE_DS2401 1
 #define USE_DS18B20 1
-#define USE_BMP 0
 #define USE_BME 1
 #define MY_DEBUG 0
 
@@ -68,6 +67,10 @@ Adafruit_CC3000 gCc3000 = Adafruit_CC3000(ADAFRUIT_CC3000_CS,
 
 #if USE_BME
 Adafruit_BME280 gBme280; // I2C
+// Variables to be exposed 
+int gHumidity = 0;
+int gPressure = 0;
+int gTemperature = 0; 
 #endif // USE_BME
 
 #if USE_DS18B20
@@ -75,6 +78,8 @@ OneWire gDs(DS18B20PIN);
 int gDevices;
 #define DS_COUNT 10
 byte gDsAddrs[DS_COUNT][8];
+// Use array for DS18B20 temperatures and simplify HTTP printout code
+int gDsTemps[DS_COUNT];
 #endif // USE_DS18B20
 
 // PHP server on backend
@@ -84,25 +89,6 @@ uint32_t gIp;
 
 //unsigned long gTimeNow;
 unsigned long gCycles = 0;
-
-// Variables to be exposed 
-int gHumidity = 0;
-int gPressure = 0;
-int gTemperature = 0;
-// To do: use array for DS18B20 temperatures and simplify HTTP printout code
-int gDsTemps[DS_COUNT];
-#if 0
-int gTempHive2Inch = 0; //3
-int gTempHive6Inch = 0; //4
-int gTempHive10Inch = 0; //5
-int gTempBox = 0; //2
-int gTemp2Hive2Inch = 0; //6
-int gTemp2Hive6Inch = 0; //7 
-int gTemp2Hive10Inch = 0; //8 
-int gTemp3Hive2Inch = 0; //9
-int gTemp3Hive6Inch = 0; //10
-int gTemp3Hive10Inch = 0; //11
-#endif
 
 // Serial Number of this beestation 
 char gSerialNumber[3]; // read from Maxim DS2401 on pin 9, use rightmost word
@@ -147,7 +133,6 @@ void setup(void)
 	setupCc3000();
 	displayConnectionDetails();
 #endif // USE_CC3300
-	//digitalWrite(gRedLED, LOW);
 	delay(2000);
 #if USE_CC3300
 	gIp = gCc3000.IP2U32(WEB_SERVER_IP_COMMAS);
@@ -186,16 +171,11 @@ void loop(void)
 #if USE_CC3300
 	Serial.println(F("Connecting to web server"));
 	wdt_reset();
-	postReadingsToWeb(gIp); /*, gTemperature, gHumidity, gPressure); */
-						   /* , gTempBox,
-		gTempHive2Inch, gTempHive6Inch, gTempHive10Inch,
-		gTemp2Hive2Inch, gTemp2Hive6Inch, gTemp2Hive10Inch,
-		gTemp3Hive2Inch, gTemp3Hive6Inch, gTemp3Hive10Inch);*/
+	postReadingsToWeb(gIp); 
 	wdt_reset();
 	if (0 == (gCycles % 100)) {
 		char message[64];
 		char iBuf[12];
-		//strlcpy(message, ("Completed "), 64);
 		strlcpy(message, itoa(gCycles, iBuf, 10), 64);
 		strlcat(message, ("%20cycles"), 64);
 		postStatusToWeb(gIp, message);
@@ -215,14 +195,13 @@ displayConnectionDetails(void)
 
 	if (!gCc3000.getIPAddress(&ipAddress, &netmask, &gateway, &dhcpserv, &dnsserv))
 	{
-		Serial.println(F("Can't get IP addr"));
+		Serial.println(F("Can't get IP"));
 		return false;
 	}
 	else
 	{
-		Serial.print(F("IP Addr: ")); gCc3000.printIPdotsRev(ipAddress);
-		Serial.print(F("\nGateway: ")); gCc3000.printIPdotsRev(gateway);
-		Serial.println("");
+		Serial.print(F("IP: ")); gCc3000.printIPdotsRev(ipAddress);
+		Serial.println(F("\nGateway: ")); gCc3000.printIPdotsRev(gateway);
 		return true;
 	}
 }
@@ -242,9 +221,7 @@ delayBetweenMeasurements(int delaySeconds)
 #define OUTSTRSIZE 256
 // send sensor measurements to the webserver
 void
-postReadingsToWeb(uint32_t ip/*, int temperature, int humidity, int pressure //Save the stack space since using globals */
-							 /*,
-	int tBox, int t2In, int t6In, int t10In, int t2In2, int t6In2, int t10In2, int t2In3, int t6In3, int t10In3*/)
+postReadingsToWeb(uint32_t ip)
 {
 	// Build the URL string
 	char outStr[OUTSTRSIZE];
@@ -254,6 +231,7 @@ postReadingsToWeb(uint32_t ip/*, int temperature, int humidity, int pressure //S
 	strlcat(outStr, ("sn="), OUTSTRSIZE);
 	strlcat(outStr, (gSerialNumber), OUTSTRSIZE);
 	strlcat(outStr, ("&"), OUTSTRSIZE);
+#if USE_BME
 	strlcat(outStr, ("t1="), OUTSTRSIZE);
 	itoa(gTemperature, itoaBuf, 10);
 	strlcat(outStr, (itoaBuf), OUTSTRSIZE);
@@ -265,7 +243,9 @@ postReadingsToWeb(uint32_t ip/*, int temperature, int humidity, int pressure //S
 	strlcat(outStr, ("pr="), OUTSTRSIZE);
 	itoa(gPressure, itoaBuf, 10);
 	strlcat(outStr, (itoaBuf), OUTSTRSIZE);
+#endif // USE_BME
 	/* Write DS18B20 results */
+#if USE_DS18B20
 	for (int j = 0; j < DS_COUNT; j++) {
 		strlcat(outStr, ("&t"), OUTSTRSIZE);
 		itoa((j+2), itoaBuf, 10);
@@ -274,49 +254,8 @@ postReadingsToWeb(uint32_t ip/*, int temperature, int humidity, int pressure //S
 		itoa(gDsTemps[j], itoaBuf, 10);
 		strlcat(outStr, (itoaBuf), OUTSTRSIZE);
 	}
-#if 0
-	strlcat(outStr, ("&"), OUTSTRSIZE);
-	strlcat(outStr, ("t2="), OUTSTRSIZE);
-	itoa(tBox, itoaBuf, 10);
-	strlcat(outStr, (itoaBuf), OUTSTRSIZE);
-	strlcat(outStr, ("&"), OUTSTRSIZE);
-	strlcat(outStr, ("t3="), OUTSTRSIZE);
-	itoa(t2In, itoaBuf, 10);
-	strlcat(outStr, (itoaBuf), OUTSTRSIZE);
-	strlcat(outStr, ("&"), OUTSTRSIZE);
-	strlcat(outStr, ("t4="), OUTSTRSIZE);
-	itoa(t6In, itoaBuf, 10);
-	strlcat(outStr, (itoaBuf), OUTSTRSIZE);
-	strlcat(outStr, ("&"), OUTSTRSIZE);
-	strlcat(outStr, ("t5="), OUTSTRSIZE);
-	itoa(t10In, itoaBuf, 10);
-	strlcat(outStr, (itoaBuf), OUTSTRSIZE);
-	strlcat(outStr, ("&"), OUTSTRSIZE);
-	strlcat(outStr, ("t6="), OUTSTRSIZE);
-	itoa(t2In2, itoaBuf, 10);
-	strlcat(outStr, (itoaBuf), OUTSTRSIZE);
-	strlcat(outStr, ("&"), OUTSTRSIZE);
-	strlcat(outStr, ("t7="), OUTSTRSIZE);
-	itoa(t6In2, itoaBuf, 10);
-	strlcat(outStr, (itoaBuf), OUTSTRSIZE);
-	strlcat(outStr, ("&"), OUTSTRSIZE);
-	strlcat(outStr, ("t8="), OUTSTRSIZE);
-	itoa(t10In2, itoaBuf, 10);
-	strlcat(outStr, (itoaBuf), OUTSTRSIZE);
-	strlcat(outStr, ("&"), OUTSTRSIZE);
-	strlcat(outStr, ("t9="), OUTSTRSIZE);
-	itoa(t2In3, itoaBuf, 10);
-	strlcat(outStr, (itoaBuf), OUTSTRSIZE);
-	strlcat(outStr, ("&"), OUTSTRSIZE);
-	strlcat(outStr, ("t10="), OUTSTRSIZE);
-	itoa(t6In3, itoaBuf, 10);
-	strlcat(outStr, (itoaBuf), OUTSTRSIZE);
-	strlcat(outStr, ("&"), OUTSTRSIZE);
-	strlcat(outStr, ("t11="), OUTSTRSIZE);
-	itoa(t10In3, itoaBuf, 10);
-	strlcat(outStr, (itoaBuf), OUTSTRSIZE);	
 #endif
-    Serial.println(outStr);
+	Serial.println(outStr);
 	postToWeb(ip, outStr);
 }
 
@@ -343,9 +282,7 @@ postToWeb(uint32_t ip, const char * urlString)
 	unsigned int gConnectTimeout = 2000;
 	unsigned long gTimeNow;
 
-	//cycleLed(gLED);
 	digitalWrite(gRedLED, HIGH);
-	//Serial.println(F("postToweb"));
 	gTimeNow = millis();
 	do {
 		Serial.println(F("->connectTCP"));
@@ -379,8 +316,7 @@ postToWeb(uint32_t ip, const char * urlString)
 	else
 	{ // you didn't get a connection to the server:
 		Serial.println(F("--> connection failed/n"));
-	}
-	//cycleLed(gLED); 
+	} 
 	digitalWrite(gRedLED, LOW);
 }
 
@@ -419,8 +355,6 @@ readSerialNumber(void)
 void
 measureBme280(void)
 {
-	/* Get a new sensor event */
-	//sensors_event_t event;
 	float temperature;
 	float pressure;
 	float humidity;
@@ -493,25 +427,18 @@ setupCc3000(void)
 void
 checkAndResetWifi(void)
 {
-	unsigned long gTimeNow;
-
 	wdt_reset();
-	if (!gCc3000.checkConnected() /* || (gCycles>5)*/)
+	if (!gCc3000.checkConnected() )
 	{
 		Serial.print(F("Time: "));
+#if 0
 		gTimeNow = millis();
 		//prints time since program started
 		Serial.println(gTimeNow);
+#endif
 		Serial.println(F("Lost WiFi. Rebooting CC3000"));
 		gCc3000.disconnect();
 		gCc3000.stop();
-		/*
-		gCc3000 = Adafruit_CC3000(ADAFRUIT_CC3000_CS,
-			ADAFRUIT_CC3000_IRQ,
-			ADAFRUIT_CC3000_VBAT,
-			SPI_CLOCK_DIV2);
-		delay(20);
-		*/
 		wdt_reset();
 		gCc3000.reboot(0);
 		// setupCc3000() was rarely finishing before the watchdog bites, so let it
@@ -524,15 +451,6 @@ calculateFreeRam(void) {
 	extern int __heap_start, *__brkval;
 	int v;
 	return (int)&v - (__brkval == 0 ? (int)&__heap_start : (int)__brkval);
-}
-
-void
-cycleLed(int pin)
-{
-	uint8_t mode = LOW;
-
-	mode = (mode == HIGH) ? LOW : HIGH;
-	digitalWrite(pin, mode);
 }
 
 // Feed the dog so it doesn't bite
@@ -564,11 +482,8 @@ countDsDevices(OneWire myDs)
 {
 	byte addr[8];
 	int deviceCount = 0;
-	/* uint16_t present = */
 
 	myDs.reset();
-	//Serial.print("OneWire presence on 6: ");
-	//Serial.println(present);
 	myDs.reset_search();
 	while (myDs.search(addr)) {
 		if (checkDsCrc(myDs, addr)) {
@@ -628,37 +543,11 @@ getDsAddrByIndex(OneWire myDs, byte firstadd[], int index)
 void
 measureDs18B20(void) {
 	for (int i = 0; i < gDevices; i++) {
-#if 0
-		float fpTemp = getDsTempeature(gDs, gDsAddrs[i]);
-		int intTemp = (int)(fpTemp + 0.5);
-#else
 		int intTemp = getDsTempeature(gDs, gDsAddrs[i]);
-#endif
 #if MY_DEBUG 
-		//Serial.print(fpTemp);
-		//Serial.print(F(" ==> "));
 		Serial.println(intTemp);
 #endif	// MY_DEBUG
-#if 0
-		switch (gDsAddrs[i][7]) {
-		case 0x67: // Blue
-			gTempHive2Inch = intTemp;
-			Serial.print(F("2in temp: "));
-			break;
-		case 0x36: //yellow
-			gTempHive6Inch = intTemp;
-			Serial.print(F("6in temp: "));
-			break;
-		case 0xC0: // red
-			gTempBox = intTemp;
-			Serial.print(F("box temp: "));
-			break;
-		case 0xB1: // blue
-			gTempHive10Inch = intTemp;
-			Serial.print(F("10in temp: "));
-			break;
-}
-#else // save some bytes over switch with cascading if's - ha ha
+ // save some bytes over switch with cascading if's - ha ha
 		if (0x67 == gDsAddrs[i][7]) {
 			gDsTemps[1] = intTemp;
 #if MY_DEBUG
@@ -719,7 +608,6 @@ measureDs18B20(void) {
 			Serial.print(F("10in temp2: "));
 #endif
 		}
-#endif
 #if MY_DEBUG
 		Serial.println(intTemp);
 #endif
@@ -727,12 +615,10 @@ measureDs18B20(void) {
 }
 
 // Testing shows 10-bit resolution give more than adequate precision and accuracy
-/*float*/
 int
 getDsTempeature(OneWire myDs, byte addr[8])
 {
 	byte data[12];
-	//int celsius;
 	wdt_reset();
 
 	// Get byte for desired resolution
@@ -783,7 +669,6 @@ getDsTempeature(OneWire myDs, byte addr[8])
 #endif // MY_DEBUG
 
 	// convert the data to actual temperature
-	/*unsigned int raw = (data[1] << 8) | data[0]; */
 	int raw = (data[1] << 8) + data[0];
 	// What about negative temps? 
 	// look for sign bit per http://stackoverflow.com/questions/30646783/arduino-temperature-sensor-negative-temperatures
@@ -794,13 +679,11 @@ getDsTempeature(OneWire myDs, byte addr[8])
 	int celsius_100 = (6 * raw) + raw / 4;    // multiply by (100 * 0.0625) or 6.25
 
 	int whole = celsius_100 / 100;  // separate off the whole and fractional portions
-	//int fract = celsius_100 % 100;
-	//
-
-	//celsius = (float)raw / 16.0;
-	//celsius = whole;
-	//Serial.print("Temp (C): ");
-	return whole /* celsius*/;
+	//int fraction = celsius_100 % 100;
+#if MY_DEBUG
+	Serial.print("Temp (C): ");
+#endif // MY_DEBUG
+	return whole;
 	}
 
 void
