@@ -622,7 +622,7 @@ getDsTempeature(OneWire myDs, byte addr[8])
 	wdt_reset();
 
 	// Get byte for desired resolution
-	byte resbyte = 0x3F; // for 10-byte resolution
+	byte resbyte = 0x3F; // for 10-bit resolution
 
 	// Set configuration
 	myDs.reset();
