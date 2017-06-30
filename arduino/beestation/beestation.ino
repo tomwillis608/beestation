@@ -396,12 +396,18 @@ void
 setupCc3000(void)
 {
 	Serial.println(F("CC3000 setup..."));
-	if (!gCc3000.begin())
+	/* 5/4/17 hack - seems stable 6/30/17 TCW */
+	gCc3000.reboot();
+		Serial.println(F("CC3000 reboot initialize"));
+		delay(500);
+#if 01
+if (!gCc3000.begin())
 	{
-		Serial.println(F("CC3000 failed to initialize"));
+		Serial.println(F("CC3000 failed initialize"));
 		do { /* do nothing without reset, let the watchdog bite */ } while (1);
 	}
-	// cleanup profiles the CC3000 module
+	#endif
+// cleanup profiles the CC3000 module
 	if (!gCc3000.deleteProfiles())
 	{
 		Serial.println(F("CC3000 failed to delete old profiles"));
